@@ -405,7 +405,8 @@ void CM2MeshFileLoader::ReadColors()
 	}
 	//read vertex color and alpha offsets
 	VertexColor OffSets;
-	video::SColorf tempVertexColors;
+	u16 Valpha;
+	video::SColorf color;
 	for(u32 i=0;i<header.Colors.num;i++)
 	{
 		MeshFile->seek(header.Colors.ofs+(i*56)); //if i = 0 then it doesn't move else it moves forward i colorvalues since they are 56 bytes long
@@ -418,10 +419,13 @@ void CM2MeshFileLoader::ReadColors()
 		MeshFile->read(&OffSets.SubAl,sizeof(numofs));  // if we want to animate alpha we need to read the ofs from timestamp here too
 		//now that we have the address to the colorblock and the address of the address of the values we can read the actual data.
 		MeshFile->seek(OffSets.SubCol.ofs); // go to where the rgb values are
-		MeshFile->read(&tempVertexColors.r, sizeof(core::vector3df));
+		MeshFile->read(&color.r, sizeof(core::vector3df));
 		MeshFile->seek(OffSets.SubAl.ofs);  // go to where the alpha values are
-		MeshFile->read(&tempVertexColors.a, 2);
-		M2MVertexColor.push_back(tempVertexColors);
+		MeshFile->read(&Valpha, 2);
+		if (Valpha > 1){
+		color.a = ((f32)Valpha/327.67f)*2.55f;  // convert to Irrlicht's alpha scale
+		}
+		M2MVertexColor.push_back(color);
 		DEBUG(logdebug("colorblock contains %f, %f, %f, %f", M2MVertexColor[i].a,M2MVertexColor[i].r,M2MVertexColor[i].g,M2MVertexColor[i].b));
 	}
 }
@@ -456,8 +460,7 @@ void CM2MeshFileLoader::ReadColorsWOTLK()
 		color.a = ((f32)Valpha/327.67f)*2.55f;
 		}
 		M2MVertexColor.push_back(color);
-		//DEBUG(logdebug
-		logdetail("colorblock contains %f, %f, %f, %f", M2MVertexColor[i].a,M2MVertexColor[i].r,M2MVertexColor[i].g,M2MVertexColor[i].b);
+		DEBUG(logdebug("colorblock contains %f, %f, %f, %f", M2MVertexColor[i].a,M2MVertexColor[i].r,M2MVertexColor[i].g,M2MVertexColor[i].b));
 	}
 }
 

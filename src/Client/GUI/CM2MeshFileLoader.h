@@ -190,11 +190,6 @@ struct VertexColor{
 	numofs SubAl;
 };
 
-struct VertexColors{
-	core::vector3df Vcolors;
-	u16 Valpha; 
-}; 
-
 struct LightOfs{
 	AnimBlock OfsAmbientColor;
 	AnimBlock OfsAmbientIntensity;
