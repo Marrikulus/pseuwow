@@ -394,7 +394,179 @@ for(u32 i=0; i<M2MAnimations.size(); i++)
 }
 DEBUG(logdebug("Read %u Bones",M2MBones.size()));
 
+}
 
+
+void CM2MeshFileLoader::ReadColors()
+{
+	if (!M2MVertexColor.empty())
+	{
+		M2MVertexColor.clear();
+	}
+	//read vertex color and alpha offsets
+	VertexColor OffSets;
+	video::SColorf tempVertexColors;
+	for(u32 i=0;i<header.Colors.num;i++)
+	{
+		MeshFile->seek(header.Colors.ofs+(i*56)); //if i = 0 then it doesn't move else it moves forward i colorvalues since they are 56 bytes long
+		MeshFile->read(&OffSets.OfsColors,sizeof(AnimBlock));  // Read the color and alpha offsets for WOTLK
+		MeshFile->read(&OffSets.OfsAlpha,sizeof(AnimBlock));
+		// folow those offsets to the subblock and read those offsets
+		MeshFile->seek(OffSets.OfsColors.header.Values.ofs); // I think we use all 3 numofs, WOTLK uses only the first 2
+		MeshFile->read(&OffSets.SubCol,8);
+		MeshFile->seek(OffSets.OfsAlpha.header.Values.ofs); 
+		MeshFile->read(&OffSets.SubAl,sizeof(numofs));  // if we want to animate alpha we need to read the ofs from timestamp here too
+		//now that we have the address to the colorblock and the address of the address of the values we can read the actual data.
+		MeshFile->seek(OffSets.SubCol.ofs); // go to where the rgb values are
+		MeshFile->read(&tempVertexColors.r, sizeof(core::vector3df));
+		MeshFile->seek(OffSets.SubAl.ofs);  // go to where the alpha values are
+		MeshFile->read(&tempVertexColors.a, 2);
+		M2MVertexColor.push_back(tempVertexColors);
+		DEBUG(logdebug("colorblock contains %f, %f, %f, %f", M2MVertexColor[i].a,M2MVertexColor[i].r,M2MVertexColor[i].g,M2MVertexColor[i].b));
+	}
+}
+
+
+void CM2MeshFileLoader::ReadColorsWOTLK()
+{
+	if (!M2MVertexColor.empty())
+	{
+		M2MVertexColor.clear();
+	}
+	//read vertex color and alpha offsets
+	VertexColor OffSets;
+	u16 Valpha;
+	video::SColorf color;
+	for(u32 i=0;i<header.Colors.num;i++)
+	{
+		MeshFile->seek(header.Colors.ofs+(i*40)); // if i = 0 then it doesn't move else it moves forward i colorvalues since they are 40 bytes long
+		MeshFile->read(&OffSets.OfsColors,20);  // Read the color and alpha offsets for WOTLK
+		MeshFile->read(&OffSets.OfsAlpha,20);
+		// folow those offsets to the subblock and read those offsets
+		MeshFile->seek(OffSets.OfsColors.header.TimeStamp.ofs); //TimeStamp instead of values (which is empty) since struct contains 3 numofs and we use only the first 2
+		MeshFile->read(&OffSets.SubCol,8);
+		MeshFile->seek(OffSets.OfsAlpha.header.TimeStamp.ofs); 
+		MeshFile->read(&OffSets.SubAl,sizeof(numofs));  // if we want to animate alpha the InterpolationRanges.ofs points to the timestamp data
+		//now that we have the address to the colorblock and the address of the address of the values we can read the actual data.
+		MeshFile->seek(OffSets.SubCol.ofs); // go to where the rgb values are
+		MeshFile->read(&color.r, sizeof(core::vector3df));
+		MeshFile->seek(OffSets.SubAl.ofs);  // go to where the alpha values are
+		MeshFile->read(&Valpha, 2);
+		if (Valpha > 1){
+		color.a = ((f32)Valpha/327.67f)*2.55f;
+		}
+		M2MVertexColor.push_back(color);
+		//DEBUG(logdebug
+		logdetail("colorblock contains %f, %f, %f, %f", M2MVertexColor[i].a,M2MVertexColor[i].r,M2MVertexColor[i].g,M2MVertexColor[i].b);
+	}
+}
+
+
+void CM2MeshFileLoader::ReadLights()
+{
+	if (!M2MLights.empty())
+	{
+		M2MLights.clear();
+	}
+	//read Lights
+	Lights tempLights;
+	for(u32 i=0;i<header.Lights.num;i++)
+	{
+		LightOfs lightsOfs1;
+		// get the first set of light offsets
+		MeshFile->seek(header.Lights.ofs+(i*172)); // Light reference is 156 bytes long since I'm skiping to AnimBlocks I add 16 here
+		MeshFile->read(&lightsOfs1.OfsAmbientColor,sizeof(AnimBlock)); // pre-WOTLK so sizeof(AnimBlock)
+		MeshFile->read(&lightsOfs1.OfsAmbientIntensity,sizeof(AnimBlock));
+		MeshFile->read(&lightsOfs1.OfsDiffuseColor,sizeof(AnimBlock));
+		MeshFile->read(&lightsOfs1.OfsDiffuseIntensity,sizeof(AnimBlock));
+		MeshFile->read(&lightsOfs1.OfsAttenuationStart,sizeof(AnimBlock));
+		MeshFile->read(&lightsOfs1.OfsAttenuationEnd,sizeof(AnimBlock));
+		// get the second set of offsets
+		MeshFile->seek(lightsOfs1.OfsAmbientColor.header.Values.ofs);
+		MeshFile->read(&lightsOfs1.AmbCol,sizeof(numofs));
+		MeshFile->seek(lightsOfs1.OfsAmbientIntensity.header.Values.ofs);
+		MeshFile->read(&lightsOfs1.AmbInt,sizeof(numofs));
+		MeshFile->seek(lightsOfs1.OfsDiffuseColor.header.Values.ofs);
+		MeshFile->read(&lightsOfs1.DifCol,sizeof(numofs));
+		MeshFile->seek(lightsOfs1.OfsDiffuseIntensity.header.Values.ofs);
+		MeshFile->read(&lightsOfs1.DifInt,sizeof(numofs));
+		MeshFile->seek(lightsOfs1.OfsAttenuationStart.header.Values.ofs);
+		MeshFile->read(&lightsOfs1.AttSt,sizeof(numofs));
+		MeshFile->seek(lightsOfs1.OfsAttenuationEnd.header.Values.ofs);
+		MeshFile->read(&lightsOfs1.AttEnd,sizeof(numofs));
+		// read the data
+		MeshFile->seek(header.Lights.ofs+(156*i));
+		MeshFile->read(&tempLights.Type, sizeof(u16));
+		MeshFile->read(&tempLights.Bone, sizeof(s16));
+		MeshFile->read(&tempLights.Position, sizeof(core::vector3df));
+		MeshFile->seek(lightsOfs1.AmbCol.ofs);
+		MeshFile->read(&tempLights.AmbientColor, sizeof(core::vector3df));
+		MeshFile->seek(lightsOfs1.AmbInt.ofs);
+		MeshFile->read(&tempLights.AmbientIntensity, sizeof(float));
+		MeshFile->seek(lightsOfs1.DifCol.ofs);
+		MeshFile->read(&tempLights.DiffuseColor, sizeof(core::vector3df));
+		MeshFile->seek(lightsOfs1.DifInt.ofs);
+		MeshFile->read(&tempLights.DiffuseIntensity, sizeof(float));
+		MeshFile->seek(lightsOfs1.AttSt.ofs);
+		MeshFile->read(&tempLights.AttenuationStart, sizeof(float));
+		MeshFile->seek(lightsOfs1.AttEnd.ofs);
+		MeshFile->read(&tempLights.AttenuationEnd, sizeof(float));
+		M2MLights.push_back(tempLights);
+	}
+}
+
+
+void CM2MeshFileLoader::ReadLightsWOTLK()
+{
+	if (!M2MLights.empty())
+	{
+		M2MLights.clear();
+	}
+	//read Lights
+	Lights tempLights;
+	for(u32 i=0;i<header.Lights.num;i++)
+    {
+		LightOfs lightsOfs1;
+		// get the first set of light offsets
+		MeshFile->seek(header.Lights.ofs+(i*172)); // Light reference is 156 bytes long since I'm skiping to AnimBlocks I add 16 here
+		MeshFile->read(&lightsOfs1.OfsAmbientColor,20); // WOTLK so 20 bytes
+		MeshFile->read(&lightsOfs1.OfsAmbientIntensity,20);
+		MeshFile->read(&lightsOfs1.OfsDiffuseColor,20);
+		MeshFile->read(&lightsOfs1.OfsDiffuseIntensity,20);
+		MeshFile->read(&lightsOfs1.OfsAttenuationStart,20);
+		MeshFile->read(&lightsOfs1.OfsAttenuationEnd,20);
+		// get the second set of offsets
+		MeshFile->seek(lightsOfs1.OfsAmbientColor.header.TimeStamp.ofs); // WOTLK so I need the 2nd numofs in the struct instead of 3rd
+		MeshFile->read(&lightsOfs1.AmbCol,sizeof(numofs));
+		MeshFile->seek(lightsOfs1.OfsAmbientIntensity.header.TimeStamp.ofs);
+		MeshFile->read(&lightsOfs1.AmbInt,sizeof(numofs));
+		MeshFile->seek(lightsOfs1.OfsDiffuseColor.header.TimeStamp.ofs);
+		MeshFile->read(&lightsOfs1.DifCol,sizeof(numofs));
+		MeshFile->seek(lightsOfs1.OfsDiffuseIntensity.header.TimeStamp.ofs);
+		MeshFile->read(&lightsOfs1.DifInt,sizeof(numofs));
+		MeshFile->seek(lightsOfs1.OfsAttenuationStart.header.TimeStamp.ofs);
+		MeshFile->read(&lightsOfs1.AttSt,sizeof(numofs));
+		MeshFile->seek(lightsOfs1.OfsAttenuationEnd.header.TimeStamp.ofs);
+		MeshFile->read(&lightsOfs1.AttEnd,sizeof(numofs));
+		// read the data
+		MeshFile->seek(header.Lights.ofs+(156*i));
+		MeshFile->read(&tempLights.Type, sizeof(u16));
+		MeshFile->read(&tempLights.Bone, sizeof(s16));
+		MeshFile->read(&tempLights.Position, sizeof(core::vector3df));
+		MeshFile->seek(lightsOfs1.AmbCol.ofs);
+		MeshFile->read(&tempLights.AmbientColor, sizeof(core::vector3df));
+		MeshFile->seek(lightsOfs1.AmbInt.ofs);
+		MeshFile->read(&tempLights.AmbientIntensity, sizeof(float));
+		MeshFile->seek(lightsOfs1.DifCol.ofs);
+		MeshFile->read(&tempLights.DiffuseColor, sizeof(core::vector3df));
+		MeshFile->seek(lightsOfs1.DifInt.ofs);
+		MeshFile->read(&tempLights.DiffuseIntensity, sizeof(float));
+		MeshFile->seek(lightsOfs1.AttSt.ofs);
+		MeshFile->read(&tempLights.AttenuationStart, sizeof(float));
+		MeshFile->seek(lightsOfs1.AttEnd.ofs);
+		MeshFile->read(&tempLights.AttenuationEnd, sizeof(float));
+		M2MLights.push_back(tempLights);
+    }
 }
 
 
@@ -586,6 +758,8 @@ switch(header.version)
     ReadAnimationData();
 
     ReadBones();
+	ReadColors();
+	ReadLights();
     break;
   }
   case 0x108:
@@ -593,8 +767,8 @@ switch(header.version)
     //This is pretty ugly... Any suggestions how to make this nicer?
     MeshFile->read((u8*)&header+0x14,24);//nGlobalSequences - ofsAnimationLookup
     MeshFile->read((u8*)&header+0x34,28);//nBones - nViews
-    MeshFile->read((u8*)&header+0x54,24);//nColors - nTransparency
-    MeshFile->read((u8*)&header+0x74,sizeof(ModelHeader)-0x74);//nTexAnims - END
+	MeshFile->read((u8*)&header+0x54,24);//nColors - nTransparency
+    MeshFile->read((u8*)&header+0x74,sizeof(ModelHeader)-0x74);//nTexAnims - END       
 
     std::string SkinName = MeshFile->getFileName().c_str();
     SkinName = SkinName.substr(0, SkinName.length()-3) + "00.skin"; // FIX ME if we need more skins
@@ -615,6 +789,8 @@ switch(header.version)
     ReadAnimationData();
 
     ReadBonesWOTLK();
+	ReadColorsWOTLK();
+	ReadLightsWOTLK();
     break;
   }
   default:
@@ -623,6 +799,7 @@ switch(header.version)
     return 0;
   }
 }
+
 
 ///////////////////////////
 // EVERYTHING IS READ
@@ -750,6 +927,14 @@ for(u32 i=0; i < currentView.Submesh.num;i++)//
     {
         if(M2MTextureUnit[j].submeshIndex1==i && !M2MTextureFiles[M2MTextureLookup[M2MTextureUnit[j].textureIndex]].empty())//if a texture unit belongs to this submesh
         {
+			//set vertex colors from colorblock
+			u32 vColIndex = (u32) M2MTextureUnit[j].colorIndex;
+			if(vColIndex != -1){
+			video::SColor color = M2MVertexColor[vColIndex].toSColor();
+			Device->getSceneManager()->getMeshManipulator()->apply(scene::SVertexColorSetManipulator(color), MeshBuffer);
+			//MeshBuffer->getMaterial().DiffuseColor = color; // if we want to set diffuse instead of vertex color
+			}
+			// get and set texture
             char buf[1000];
             MemoryDataHolder::MakeTextureFilename(buf,M2MTextureFiles[M2MTextureLookup[M2MTextureUnit[j].textureIndex]].c_str());
             video::ITexture* tex = Device->getVideoDriver()->findTexture(buf);
@@ -764,20 +949,43 @@ for(u32 i=0; i < currentView.Submesh.num;i++)//
             tex = Device->getVideoDriver()->getTexture(TexFile);
             TexFile->drop();
             }
-            MeshBuffer->getMaterial().setTexture(M2MTextureUnit[j].TextureUnitNumber,tex);
+            MeshBuffer->getMaterial().setTexture(M2MTextureUnit[j].TextureUnitNumber,tex);  // set a condition here to handle animated textures if they are used irrlicht.sourceforge.net/docu/example008.html
 
             DEBUG(logdebug("Render Flags: %u %u",M2MRenderFlags[M2MTextureUnit[j].renderFlagsIndex].flags,M2MRenderFlags[M2MTextureUnit[j].renderFlagsIndex].blending));
-            MeshBuffer->getMaterial().BackfaceCulling=(M2MRenderFlags[M2MTextureUnit[j].renderFlagsIndex].flags & 0x04)?false:true;
-            switch(M2MRenderFlags[M2MTextureUnit[j].renderFlagsIndex].blending)
+            MeshBuffer->getMaterial().Lighting=(M2MRenderFlags[M2MTextureUnit[j].renderFlagsIndex].flags & 0x01)?false:true; // commented ot line 212 in viwer's main.cpp since im setting lighting here
+			MeshBuffer->getMaterial().FogEnable=(M2MRenderFlags[M2MTextureUnit[j].renderFlagsIndex].flags & 0x02)?false:true;
+			MeshBuffer->getMaterial().BackfaceCulling=(M2MRenderFlags[M2MTextureUnit[j].renderFlagsIndex].flags & 0x04)?false:true;
+			MeshBuffer->getMaterial().ZWriteEnable=(M2MRenderFlags[M2MTextureUnit[j].renderFlagsIndex].flags & 0x10)?false:true;
+			switch(M2MRenderFlags[M2MTextureUnit[j].renderFlagsIndex].blending)
             {
-              case 1:
-                MeshBuffer->getMaterial().MaterialType=video::EMT_TRANSPARENT_ALPHA_CHANNEL_REF ;
+			  case 0:  //opaque
+				MeshBuffer->getMaterial().MaterialType=video::EMT_SOLID;
+				break;
+              case 1:  //alpha ref
+                MeshBuffer->getMaterial().MaterialType=video::EMT_TRANSPARENT_ALPHA_CHANNEL_REF;  // default REF = 127 maybe set a lower REF?
+				MeshBuffer->getMaterial().MaterialTypeParam = 0.5f;  //not shure if I need this or if 127 is good
                 break;
-              case 2:
-              case 4:
-              MeshBuffer->getMaterial().MaterialType=video::EMT_TRANSPARENT_ALPHA_CHANNEL;
-              DEBUG(logdebug("Alpha Channel Transparency on"));
-              break;
+              case 2:  //alpha blend
+				MeshBuffer->getMaterial().MaterialType=video::EMT_ONETEXTURE_BLEND;
+				MeshBuffer->getMaterial().MaterialTypeParam = pack_texureBlendFunc(video::EBF_SRC_ALPHA, video::EBF_ONE_MINUS_SRC_ALPHA,  video::EMFN_MODULATE_1X, video::EAS_TEXTURE);
+				break;
+			  case 3:  //additive 
+				MeshBuffer->getMaterial().MaterialType=video::EMT_ONETEXTURE_BLEND;
+				MeshBuffer->getMaterial().MaterialTypeParam = pack_texureBlendFunc(video::EBF_SRC_COLOR, video::EBF_DST_COLOR, video::EMFN_MODULATE_1X, video::EAS_TEXTURE);  // | video::EAS_VERTEX_COLOR);
+				break;
+              case 4:  //additive alpha
+				MeshBuffer->getMaterial().MaterialType=video::EMT_ONETEXTURE_BLEND;
+				MeshBuffer->getMaterial().MaterialTypeParam = pack_texureBlendFunc(video::EBF_SRC_ALPHA, video::EBF_ONE, video::EMFN_MODULATE_2X, video::EAS_TEXTURE);
+                /*DEBUG(logdebug("Alpha Channel Transparency on"));*/
+                break;
+			  case 5:  //modulate blend
+				MeshBuffer->getMaterial().MaterialType=video::EMT_ONETEXTURE_BLEND;
+				MeshBuffer->getMaterial().MaterialTypeParam = pack_texureBlendFunc(video::EBF_SRC_COLOR, video::EBF_DST_COLOR, video::EMFN_MODULATE_1X, video::EAS_TEXTURE);
+                break;
+			  case 6:  //not shure exatly so I'm using modulate2x blend like wowmodelviewer or could use EMT_TRANSPARENT_ADD_COLOR
+				MeshBuffer->getMaterial().MaterialType=video::EMT_ONETEXTURE_BLEND;
+				MeshBuffer->getMaterial().MaterialTypeParam = pack_texureBlendFunc(video::EBF_DST_COLOR, video::EBF_SRC_COLOR, video::EMFN_MODULATE_2X, video::EAS_TEXTURE);
+                break;
             }
         }
 

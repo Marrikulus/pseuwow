@@ -10,6 +10,7 @@ namespace irr
 namespace scene
 {
 
+
 struct numofs {
     u32 num;
     u32 ofs;
@@ -182,6 +183,46 @@ struct Bone{
     core::vector3df PivotPoint;
 };
 
+struct VertexColor{
+	AnimBlock OfsColors;// ofs to SubCol
+	AnimBlock OfsAlpha;
+	numofs SubCol;// ofs to color rgb values
+	numofs SubAl;
+};
+
+struct VertexColors{
+	core::vector3df Vcolors;
+	u16 Valpha; 
+}; 
+
+struct LightOfs{
+	AnimBlock OfsAmbientColor;
+	AnimBlock OfsAmbientIntensity;
+	AnimBlock OfsDiffuseColor;
+	AnimBlock OfsDiffuseIntensity;
+	AnimBlock OfsAttenuationStart;
+	AnimBlock OfsAttenuationEnd;
+	//AnimBlock OfsUnknown;  //probably not needed
+	numofs AmbCol;
+	numofs AmbInt;
+	numofs DifCol;
+	numofs DifInt;
+	numofs AttSt;
+	numofs AttEnd;
+};
+
+struct Lights{
+	u16 Type;
+	s16 Bone;
+	core::vector3df Position;  //if these are animated then folowing position in this struct should be arrays for these types?
+	core::vector3df AmbientColor;
+	float AmbientIntensity;
+	core::vector3df DiffuseColor;
+	float DiffuseIntensity;
+	float AttenuationStart;
+	float AttenuationEnd;
+	u32 Unknown;  //probably not used since wowdev doesn't know what it is for
+};
 
 class CM2MeshFileLoader : public IMeshLoader
 {
@@ -206,7 +247,11 @@ private:
 
 	bool load();
     void ReadBones();
+	void ReadColors();
+	void ReadLights();
     void ReadBonesWOTLK();
+	void ReadColorsWOTLK();
+	void ReadLightsWOTLK();
     void ReadVertices();
     void ReadTextureDefinitions();
     void ReadAnimationData();
@@ -227,6 +272,8 @@ private:
     SMesh* Mesh;
     //SSkinMeshBuffer* MeshBuffer;
     //Taken from the Model file, thus m2M*
+	core::array<Lights> M2MLights;
+	core::array<video::SColorf> M2MVertexColor;
     core::array<ModelVertex> M2MVertices;
     core::array<u16> M2MIndices;
     core::array<u16> M2MTriangles;

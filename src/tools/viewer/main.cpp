@@ -209,7 +209,7 @@ void loadModel(const c8* fn)
         animModel->setM2Animation(0);
 		Model = animModel;
 	}
-	Model->setMaterialFlag(video::EMF_LIGHTING, true);
+	//Model->setMaterialFlag(video::EMF_LIGHTING, true);
     //	Model->setMaterialFlag(video::EMF_BACK_FACE_CULLING, false);
 	Model->setDebugDataVisible(scene::EDS_OFF);
 	// we need to uncheck the menu entries. would be cool to fake a menu event, but
