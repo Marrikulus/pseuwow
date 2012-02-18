@@ -151,7 +151,9 @@ void CM2Mesh::buildAllAnimatedMatrices(SJoint *joint, SJoint *parentJoint)
         }
         else
         {
-        //If this joint has no animation we don't care. I think. --shlainn
+        //If this joint has no animation we care a lot! Set it to starting position. --shlainn
+          joint->GlobalAnimatedMatrix=core::matrix4();
+          joint->GlobalAnimatedMatrix.setTranslation(joint->LocalMatrix.getTranslation());
         }
 
         if(parentJoint)
@@ -1422,6 +1424,7 @@ void CM2Mesh::newAnimation(u32 id, s32 start, s32 end, f32 probability)
   Animations.push_back(a);
 }
 
+// Switch Geosets on and off
 void CM2Mesh::setGeoSetRender(u32 id, bool render)//this sets the render status for a geoset ID
 {
   for(u16 i = 0; i < GeoSetID.size(); i++)
@@ -1430,6 +1433,15 @@ void CM2Mesh::setGeoSetRender(u32 id, bool render)//this sets the render status 
     {
       GeoSetRender[i]=render;
     }
+  }
+};
+
+//DEBUG FUNCTION: Switch submeshes on and off
+void CM2Mesh::setMBRender(u32 id, bool render)//this sets the render status for a geoset ID
+{
+  if(GeoSetRender.size()>id)
+  {
+    GeoSetRender[id]=render;
   }
 };
 

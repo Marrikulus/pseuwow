@@ -10,6 +10,11 @@ namespace irr
 namespace scene
 {
 
+enum ABlockDatatype{
+  ABDT_FLOAT,
+  ABDT_SHORT,
+  ABDT_INT
+};
 
 struct numofs {
     u32 num;
@@ -184,37 +189,22 @@ struct Bone{
 };
 
 struct VertexColor{
-	AnimBlock OfsColors;// ofs to SubCol
-	AnimBlock OfsAlpha;
-	numofs SubCol;// ofs to color rgb values
-	numofs SubAl;
+    AnimBlock Colors;
+    AnimBlock Alpha;
 };
 
-struct LightOfs{
-	AnimBlock OfsAmbientColor;
-	AnimBlock OfsAmbientIntensity;
-	AnimBlock OfsDiffuseColor;
-	AnimBlock OfsDiffuseIntensity;
-	AnimBlock OfsAttenuationStart;
-	AnimBlock OfsAttenuationEnd;
-	//AnimBlock OfsUnknown;  //probably not needed
-	numofs AmbCol;
-	numofs AmbInt;
-	numofs DifCol;
-	numofs DifInt;
-	numofs AttSt;
-	numofs AttEnd;
-};
 
-struct Lights{
-	u16 Type;
-	s16 Bone;
-	core::vector3df Position;  //if these are to be animated then at the end of this struct should be arrays for the timestamps
-	video::SColorf AmbientColor;  // AmbientIntensity is in AmbientColor.a;
-	video::SColorf DiffuseColor;  // DiffuseIntensity is in DiffuseColor.a;
-	float AttenuationStart;
-	float AttenuationEnd;
-	u32 Unknown;  //probably wont use this since wowdev doesn't know what it is for. may be for enable shadows since its usualy 1
+struct Light{
+    u16 Type;
+    s16 Bone;
+    core::vector3df Position;
+    AnimBlock AmbientColor;
+    AnimBlock AmbientIntensity;
+    AnimBlock DiffuseColor;
+    AnimBlock DiffuseIntensity;
+    AnimBlock AttenuationStart;
+    AnimBlock AttenuationEnd;
+    AnimBlock Unknown;
 };
 
 class CM2MeshFileLoader : public IMeshLoader
@@ -242,13 +232,11 @@ private:
     void ReadBones();
 	void ReadColors();
 	void ReadLights();
-    void ReadBonesWOTLK();
-	void ReadColorsWOTLK();
-	void ReadLightsWOTLK();
     void ReadVertices();
     void ReadTextureDefinitions();
     void ReadAnimationData();
     void ReadViewData(io::IReadFile* file);
+    void ReadABlock(AnimBlock &ABlock, u8 datatype, u8 datanum);
 
 	IrrlichtDevice *Device;
     core::stringc Texdir;
@@ -265,8 +253,8 @@ private:
     SMesh* Mesh;
     //SSkinMeshBuffer* MeshBuffer;
     //Taken from the Model file, thus m2M*
-	//core::array<CM2Mesh::Lights> M2MLights;
-	core::array<video::SColorf> M2MVertexColor;
+	core::array<Light> M2MLights;
+	core::array<VertexColor> M2MVertexColor;
     core::array<ModelVertex> M2MVertices;
     core::array<u16> M2MIndices;
     core::array<u16> M2MTriangles;
@@ -278,6 +266,8 @@ private:
     core::array<RenderFlags> M2MRenderFlags;
     core::array<u32> M2MGlobalSequences;
     core::array<Animation> M2MAnimations;
+    core::array<io::IReadFile*> M2MAnimfiles;//Stores pointers to *.anim files in WOTLK
+
     core::array<s16> M2MAnimationLookup;
     core::array<Bone> M2MBones;
     core::array<u16> M2MBoneLookupTable;
