@@ -154,6 +154,20 @@ namespace scene
         //Retrieve geoset rendering information
         void setGeoSetRender(u32 id, bool render);
         bool getGeoSetRender(u32 meshbufferNumber);
+		//add light nodes
+		struct Lights{
+			u16 Type;
+			s16 Bone;
+			core::vector3df Position;  //if these are to be animated then at the end of this struct should be arrays for the timestamps
+			video::SColorf AmbientColor;  // AmbientIntensity is in AmbientColor.a;
+			video::SColorf DiffuseColor;  // DiffuseIntensity is in DiffuseColor.a;
+			float AttenuationStart;
+			float AttenuationEnd;
+			u32 Unknown;  //probably wont use this since wowdev doesn't know what it is for. may be for enable shadows since its usualy 1
+		};
+
+		core::array<Lights> M2MLights;
+		void attachM2Lights(IAnimatedMeshSceneNode *Node, ISceneManager *smgr); //lumirion's test
 private:
 
 		void checkForAnimation();

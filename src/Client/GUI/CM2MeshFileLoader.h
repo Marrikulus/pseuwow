@@ -209,14 +209,12 @@ struct LightOfs{
 struct Lights{
 	u16 Type;
 	s16 Bone;
-	core::vector3df Position;  //if these are animated then folowing position in this struct should be arrays for these types?
-	core::vector3df AmbientColor;
-	float AmbientIntensity;
-	core::vector3df DiffuseColor;
-	float DiffuseIntensity;
+	core::vector3df Position;  //if these are to be animated then at the end of this struct should be arrays for the timestamps
+	video::SColorf AmbientColor;  // AmbientIntensity is in AmbientColor.a;
+	video::SColorf DiffuseColor;  // DiffuseIntensity is in DiffuseColor.a;
 	float AttenuationStart;
 	float AttenuationEnd;
-	u32 Unknown;  //probably not used since wowdev doesn't know what it is for
+	u32 Unknown;  //probably wont use this since wowdev doesn't know what it is for. may be for enable shadows since its usualy 1
 };
 
 class CM2MeshFileLoader : public IMeshLoader
@@ -267,7 +265,7 @@ private:
     SMesh* Mesh;
     //SSkinMeshBuffer* MeshBuffer;
     //Taken from the Model file, thus m2M*
-	core::array<Lights> M2MLights;
+	//core::array<CM2Mesh::Lights> M2MLights;
 	core::array<video::SColorf> M2MVertexColor;
     core::array<ModelVertex> M2MVertices;
     core::array<u16> M2MIndices;

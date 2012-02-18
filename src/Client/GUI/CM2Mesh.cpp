@@ -1446,6 +1446,25 @@ bool CM2Mesh::getGeoSetRender(u32 meshbufferNumber)//This gets the render status
 };
 
 
+//
+void CM2Mesh::attachM2Lights(IAnimatedMeshSceneNode *Node, ISceneManager *smgr)
+{
+	//if m2mlights isnt empty load the first light
+	if (M2MLights.empty() != true)
+	{
+	video::SLight light;
+	light.AmbientColor = M2MLights[0].AmbientColor;
+	light.DiffuseColor = M2MLights[0].DiffuseColor;
+	//light.CastShadows = true; 
+	light.Radius = M2MLights[0].AttenuationEnd;
+	light.Type = video::ELT_DIRECTIONAL;
+
+	scene::ILightSceneNode* m2light1 = smgr->addLightSceneNode(Node->getJointNode(M2MLights[0].Bone), M2MLights[0].Position);
+    m2light1->setLightData(light);
+	}
+}
+
+
 } // end namespace scene
 } // end namespace irr
 

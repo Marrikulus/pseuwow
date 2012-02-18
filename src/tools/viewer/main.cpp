@@ -180,7 +180,7 @@ void loadModel(const c8* fn)
 
 	Model = 0;
 
-	scene::IAnimatedMesh* m = Device->getSceneManager()->getMesh( modelfile );
+	scene::IAnimatedMesh* m = Device->getSceneManager()->getMesh( modelfile ); //IAnimatedMesh
 
 	if (!m)
 	{
@@ -207,6 +207,7 @@ void loadModel(const c8* fn)
 		scene::IAnimatedMeshSceneNode* animModel = Device->getSceneManager()->addAnimatedMeshSceneNode(m);
 		animModel->setAnimationSpeed(1000);
         animModel->setM2Animation(0);
+		((scene::CM2Mesh*)(animModel)->getMesh())->CM2Mesh::attachM2Lights(animModel, Device->getSceneManager());  //lumirion test
 		Model = animModel;
 	}
 	//Model->setMaterialFlag(video::EMF_LIGHTING, true);

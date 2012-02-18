@@ -467,12 +467,12 @@ void CM2MeshFileLoader::ReadColorsWOTLK()
 
 void CM2MeshFileLoader::ReadLights()
 {
-	if (!M2MLights.empty())
+	if (!AnimatedMesh->CM2Mesh::M2MLights.empty())
 	{
-		M2MLights.clear();
+		AnimatedMesh->CM2Mesh::M2MLights.clear();
 	}
 	//read Lights
-	Lights tempLights;
+	CM2Mesh::Lights tempLights;
 	for(u32 i=0;i<header.Lights.num;i++)
 	{
 		LightOfs lightsOfs1;
@@ -505,28 +505,28 @@ void CM2MeshFileLoader::ReadLights()
 		MeshFile->seek(lightsOfs1.AmbCol.ofs);
 		MeshFile->read(&tempLights.AmbientColor, sizeof(core::vector3df));
 		MeshFile->seek(lightsOfs1.AmbInt.ofs);
-		MeshFile->read(&tempLights.AmbientIntensity, sizeof(float));
+		MeshFile->read(&tempLights.AmbientColor.a, sizeof(float));
 		MeshFile->seek(lightsOfs1.DifCol.ofs);
 		MeshFile->read(&tempLights.DiffuseColor, sizeof(core::vector3df));
 		MeshFile->seek(lightsOfs1.DifInt.ofs);
-		MeshFile->read(&tempLights.DiffuseIntensity, sizeof(float));
+		MeshFile->read(&tempLights.DiffuseColor.a, sizeof(float));
 		MeshFile->seek(lightsOfs1.AttSt.ofs);
 		MeshFile->read(&tempLights.AttenuationStart, sizeof(float));
 		MeshFile->seek(lightsOfs1.AttEnd.ofs);
 		MeshFile->read(&tempLights.AttenuationEnd, sizeof(float));
-		M2MLights.push_back(tempLights);
+		AnimatedMesh->CM2Mesh::M2MLights.push_back(tempLights);
 	}
 }
 
 
 void CM2MeshFileLoader::ReadLightsWOTLK()
 {
-	if (!M2MLights.empty())
+	if (!AnimatedMesh->CM2Mesh::M2MLights.empty())
 	{
-		M2MLights.clear();
+		AnimatedMesh->CM2Mesh::M2MLights.clear();
 	}
 	//read Lights
-	Lights tempLights;
+	CM2Mesh::Lights tempLights;
 	for(u32 i=0;i<header.Lights.num;i++)
     {
 		LightOfs lightsOfs1;
@@ -559,16 +559,17 @@ void CM2MeshFileLoader::ReadLightsWOTLK()
 		MeshFile->seek(lightsOfs1.AmbCol.ofs);
 		MeshFile->read(&tempLights.AmbientColor, sizeof(core::vector3df));
 		MeshFile->seek(lightsOfs1.AmbInt.ofs);
-		MeshFile->read(&tempLights.AmbientIntensity, sizeof(float));
+		MeshFile->read(&tempLights.AmbientColor.a, sizeof(float));
 		MeshFile->seek(lightsOfs1.DifCol.ofs);
 		MeshFile->read(&tempLights.DiffuseColor, sizeof(core::vector3df));
 		MeshFile->seek(lightsOfs1.DifInt.ofs);
-		MeshFile->read(&tempLights.DiffuseIntensity, sizeof(float));
+		MeshFile->read(&tempLights.DiffuseColor.a, sizeof(float));
 		MeshFile->seek(lightsOfs1.AttSt.ofs);
 		MeshFile->read(&tempLights.AttenuationStart, sizeof(float));
 		MeshFile->seek(lightsOfs1.AttEnd.ofs);
 		MeshFile->read(&tempLights.AttenuationEnd, sizeof(float));
-		M2MLights.push_back(tempLights);
+		//M2MLights.push_back(tempLights); // wont need this one then
+		AnimatedMesh->CM2Mesh::M2MLights.push_back(tempLights); // push to array in cm2mesh
     }
 }
 
@@ -929,14 +930,14 @@ for(u32 i=0; i < currentView.Submesh.num;i++)//
     for(u32 j=0;j<M2MTextureUnit.size();j++)//Loop through texture units
     {
         if(M2MTextureUnit[j].submeshIndex1==i && !M2MTextureFiles[M2MTextureLookup[M2MTextureUnit[j].textureIndex]].empty())//if a texture unit belongs to this submesh
-        {
+        {  /*
 			//set vertex colors from colorblock
 			u32 vColIndex = (u32) M2MTextureUnit[j].colorIndex;
 			if(vColIndex != -1){
-			video::SColor color = M2MVertexColor[vColIndex].toSColor();
+			video::SColor color = M2MVertexColor[vColIndex].toSColor(); // SColor color maybe should be global and oly apllyed if we realy need it?
 			Device->getSceneManager()->getMeshManipulator()->apply(scene::SVertexColorSetManipulator(color), MeshBuffer);
 			//MeshBuffer->getMaterial().DiffuseColor = color; // if we want to set diffuse instead of vertex color
-			}
+			} */
 			// get and set texture
             char buf[1000];
             MemoryDataHolder::MakeTextureFilename(buf,M2MTextureFiles[M2MTextureLookup[M2MTextureUnit[j].textureIndex]].c_str());
@@ -958,6 +959,7 @@ for(u32 i=0; i < currentView.Submesh.num;i++)//
             MeshBuffer->getMaterial().Lighting=(M2MRenderFlags[M2MTextureUnit[j].renderFlagsIndex].flags & 0x01)?false:true; // commented ot line 212 in viwer's main.cpp since im setting lighting here
 			MeshBuffer->getMaterial().FogEnable=(M2MRenderFlags[M2MTextureUnit[j].renderFlagsIndex].flags & 0x02)?false:true;
 			MeshBuffer->getMaterial().BackfaceCulling=(M2MRenderFlags[M2MTextureUnit[j].renderFlagsIndex].flags & 0x04)?false:true;
+			MeshBuffer->getMaterial().ZBuffer=(M2MRenderFlags[M2MTextureUnit[j].renderFlagsIndex].flags & 0x10)?false:true;
 			MeshBuffer->getMaterial().ZWriteEnable=(M2MRenderFlags[M2MTextureUnit[j].renderFlagsIndex].flags & 0x10)?false:true;
 			switch(M2MRenderFlags[M2MTextureUnit[j].renderFlagsIndex].blending)
             {
@@ -969,21 +971,27 @@ for(u32 i=0; i < currentView.Submesh.num;i++)//
 				MeshBuffer->getMaterial().MaterialTypeParam = 0.5f;  //not shure if I need this or if 127 is good
                 break;
               case 2:  //alpha blend
+				//MeshBuffer->getMaterial().MaterialType=video::EMT_TRANSPARENT_ALPHA_CHANNEL;
 				MeshBuffer->getMaterial().MaterialType=video::EMT_ONETEXTURE_BLEND;
 				MeshBuffer->getMaterial().MaterialTypeParam = pack_texureBlendFunc(video::EBF_SRC_ALPHA, video::EBF_ONE_MINUS_SRC_ALPHA,  video::EMFN_MODULATE_1X, video::EAS_TEXTURE);
+				
 				break;
 			  case 3:  //additive 
+				  //MeshBuffer->getMaterial().MaterialType=video::EMT_TRANSPARENT_ADD_COLOR;
+				  
 				MeshBuffer->getMaterial().MaterialType=video::EMT_ONETEXTURE_BLEND;
-				MeshBuffer->getMaterial().MaterialTypeParam = pack_texureBlendFunc(video::EBF_SRC_COLOR, video::EBF_DST_COLOR, video::EMFN_MODULATE_1X, video::EAS_TEXTURE);  // | video::EAS_VERTEX_COLOR);
+				MeshBuffer->getMaterial().MaterialTypeParam = pack_texureBlendFunc(video::EBF_ONE, video::EBF_ONE, video::EMFN_MODULATE_1X, video::EAS_TEXTURE);  // | video::EAS_VERTEX_COLOR);
+				
 				break;
               case 4:  //additive alpha
 				MeshBuffer->getMaterial().MaterialType=video::EMT_ONETEXTURE_BLEND;
-				MeshBuffer->getMaterial().MaterialTypeParam = pack_texureBlendFunc(video::EBF_SRC_ALPHA, video::EBF_ONE, video::EMFN_MODULATE_2X, video::EAS_TEXTURE);
+				MeshBuffer->getMaterial().MaterialTypeParam = pack_texureBlendFunc(video::EBF_SRC_ALPHA, video::EBF_ONE, video::EMFN_MODULATE_1X, video::EAS_TEXTURE | video::EAS_VERTEX_COLOR | video::EBF_ONE); //video::EAS_TEXTURE); 
                 /*DEBUG(logdebug("Alpha Channel Transparency on"));*/
                 break;
 			  case 5:  //modulate blend
 				MeshBuffer->getMaterial().MaterialType=video::EMT_ONETEXTURE_BLEND;
-				MeshBuffer->getMaterial().MaterialTypeParam = pack_texureBlendFunc(video::EBF_SRC_COLOR, video::EBF_DST_COLOR, video::EMFN_MODULATE_1X, video::EAS_TEXTURE);
+				MeshBuffer->getMaterial().MaterialTypeParam = pack_texureBlendFunc(video::EBF_ONE, video::EBF_SRC_COLOR, video::EMFN_MODULATE_1X, video::EAS_TEXTURE);
+				//MeshBuffer->getMaterial().MaterialTypeParam = pack_texureBlendFunc(video::EBF_SRC_COLOR, video::EBF_DST_COLOR, video::EMFN_MODULATE_2X, video::EAS_TEXTURE);
                 break;
 			  case 6:  //not shure exatly so I'm using modulate2x blend like wowmodelviewer or could use EMT_TRANSPARENT_ADD_COLOR
 				MeshBuffer->getMaterial().MaterialType=video::EMT_ONETEXTURE_BLEND;
@@ -1014,6 +1022,8 @@ M2MTextureDef.clear();
 M2MSubmeshes.clear();
 M2MTextureFiles.clear();
 M2MTextureLookup.clear();
+//M2MLights.clear();
+M2MVertexColor.clear();
 return true;
 }
 
