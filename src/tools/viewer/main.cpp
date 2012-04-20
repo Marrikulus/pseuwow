@@ -201,7 +201,7 @@ void loadModel(const c8* fn)
     treeroot->setExpanded(true);
     for(u32 i=0;i<m->getMeshBufferCount();i++)
     {
-      core::stringw nodename(L"Submesh ");
+      core::stringw nodename(L"Submesh "); 
       nodename += i;
       IGUITreeViewNode* treenode = treeroot->addChildBack(nodename.c_str());
       treenode->setExpanded(true);
@@ -238,6 +238,54 @@ void loadModel(const c8* fn)
 //     str.append(core::stringw(m->getMeshBufferCount()));
 //     e->setText(str.c_str());
 	// set default material properties
+
+	//Log submesh info since treview can't side scroll
+	FILE* s = fopen("viewer_submesh.txt","w");
+	for(u32 i=0;i<m->getMeshBufferCount();i++)
+    {
+      std::string info = "Submesh ";
+	  std::ostringstream number;
+	  number<<  i;
+	  info += number.str();
+	  fwrite(info.c_str(),1,info.size(),s);
+      //logdetail("Viewer:: %s",info); //, number.str());
+      info = "Texture: ";
+	  fwrite(info.c_str(),1,info.size(),s);
+	  irr::io::SNamedPath name;
+      if(m->getMeshBuffer(i)->getMaterial().getTexture(0)){
+		name = m->getMeshBuffer(i)->getMaterial().getTexture(0)->getName();
+		info = name.getInternalName().c_str();
+	  }
+      else
+        info = "none";
+	  info = name.getInternalName().c_str();
+	  fwrite(info.c_str(),1,info.size(),s);
+      info = "Material Type: ";
+      switch(m->getMeshBuffer(i)->getMaterial().MaterialType)
+      {
+        case video::EMT_SOLID:
+          info += "SOLID";
+          break;
+        case video::EMT_TRANSPARENT_ALPHA_CHANNEL_REF:
+          info += "ALPHA_REF";
+          break;
+        case video::EMT_ONETEXTURE_BLEND:
+          info += "BLEND";
+          break;
+      }
+      //logdetail("Viewer:: %s",info);
+	  fwrite(info.c_str(),1,info.size(),s);
+      info = "FogEnable: ";
+      info += m->getMeshBuffer(i)->getMaterial().FogEnable?"true":"false";
+      //logdetail("Viewer:: %s",info);
+	  fwrite(info.c_str(),1,info.size(),s);
+      info = "BackfaceCulling: ";
+      info += m->getMeshBuffer(i)->getMaterial().BackfaceCulling?"true":"false";
+      //logdetail("Viewer:: %s",info);
+	  fwrite(info.c_str(),1,info.size(),s);
+    }
+	fclose(s);
+	//end log
 
 	if (Octree)
 		Model = Device->getSceneManager()->addOctTreeSceneNode(m->getMesh(0));
@@ -756,6 +804,7 @@ int main(int argc, char* argv[])
 	video::IVideoDriver* driver = Device->getVideoDriver();
 	IGUIEnvironment* env = Device->getGUIEnvironment();
 	scene::ISceneManager* smgr = Device->getSceneManager();
+	//smgr->getParameters()->setAttribute(scene::ALLOW_ZWRITE_ON_TRANSPARENT, true); // test if fix alpha blend order
 	smgr->getParameters()->setAttribute(scene::COLLADA_CREATE_SCENE_INSTANCES, true);
 
     // register external loaders for not supported filetypes
