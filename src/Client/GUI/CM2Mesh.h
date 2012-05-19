@@ -155,6 +155,12 @@ namespace scene
         void setGeoSetRender(u32 id, bool render);
         void setMBRender(u32 id, bool render);
         bool getGeoSetRender(u32 meshbufferNumber);
+		//submesh map for splitting a mesh into smaller pieces for proper ordering
+		struct BufferInfo{
+			u16 ID;
+			u16 Mode;
+		};
+		core::array<BufferInfo> BufferMap;
 		//add light nodes
 		struct Lights{
 			u16 Type;

@@ -557,6 +557,17 @@ bool CM2MeshFileLoader::load()
 ///////////////////////////
 // EVERYTHING IS READ
 ///////////////////////////
+    // Populate an array with a map of submesh meshbuffer id and mode
+	scene::CM2Mesh::BufferInfo meshmap;
+	for (u16 s = 0; s < M2MSubmeshes.size(); s++){
+		for (u16 t = 0; t < M2MTextureUnit.size(); t++){   
+			if (M2MTextureUnit[t].submeshIndex1==s){
+				meshmap.ID = s;
+				meshmap.Mode = M2MTextureUnit[t].unk1; //unk1 is mode
+				AnimatedMesh->BufferMap.push_back(meshmap);  //I need a specific instance of a cm2mesh to acess its BufferMap
+			}
+		}
+	}
 
 
 ///////////////////////////////////////
@@ -673,7 +684,6 @@ for(u32 i=0; i < currentView.Submesh.num;i++)//
 
         }
     }
-
 
     MeshBuffer->recalculateBoundingBox();
     for(u32 j=0;j<M2MTextureUnit.size();j++)//Loop through texture units
