@@ -155,12 +155,29 @@ namespace scene
         void setGeoSetRender(u32 id, bool render);
         void setMBRender(u32 id, bool render);
         bool getGeoSetRender(u32 meshbufferNumber);
-		//submesh map for splitting a mesh into smaller pieces for proper ordering
-		struct BufferInfo{
+		//Submesh Array containing data for each submesh sorted for proper render order
+		struct BufferInfo{  //Submesh Data Element
 			u16 ID;
 			u16 Mode;
+			u16 order;
+			u16 block;
+			u16 blend;
+			u16 flag;       // Renderflag
+			u16 unknown;    // still no clue what this is
+			bool solid;
+			bool animatedtexture;
+			core::vector3df Coordinates; // Center point of an aabb
+			float Back;     // Far Edge
+			float Middle;   // Center
+			float Front;    // Near Edge
+			float SortPoint; // We set this to back middle or front
+			float Radius;
+			float Xpos;     // Right Edge
+			float Xneg;     // Left Edge
+			float Ypos;     // Top Edge
+			float Yneg;     // Bottom Edge
 		};
-		core::array<BufferInfo> BufferMap;
+		core::array<BufferInfo> BufferMap; // The Array to Map out my Submesh Data Element order
 		//add light nodes
 		struct Lights{
 			u16 Type;
