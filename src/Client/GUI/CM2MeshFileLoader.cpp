@@ -557,17 +557,184 @@ bool CM2MeshFileLoader::load()
 ///////////////////////////
 // EVERYTHING IS READ
 ///////////////////////////
-    // Populate an array with a map of submesh meshbuffer id and mode
+
+///////////////////////////
+// Map Out The Correct Render Order of all Submeshes
+///////////////////////////
+
+// ToDo:: Handle all skins for the current mesh.  Add anouther array in cm2mesh.h named views and push_back each AnimatedMesh->BufferMap into it
+
+// Populate a temporary array with submesh data to make a map of correct submesh order
 	scene::CM2Mesh::BufferInfo meshmap;
-	for (u16 s = 0; s < M2MSubmeshes.size(); s++){
-		for (u16 t = 0; t < M2MTextureUnit.size(); t++){   
-			if (M2MTextureUnit[t].submeshIndex1==s){
-				meshmap.ID = s;
-				meshmap.Mode = M2MTextureUnit[t].unk1; //unk1 is mode
-				AnimatedMesh->BufferMap.push_back(meshmap);  //I need a specific instance of a cm2mesh to acess its BufferMap
+	for (u16 s = 0; s < M2MSubmeshes.size(); s++)           // Loop through the submeshes
+	{
+		u16 t;
+		for (u16 T = 0; T < M2MTextureUnit.size(); T++){     // Find the first textureunit that applies to submesh S
+			if (M2MTextureUnit[T].submeshIndex1 == s){
+				t=T;
+				T=M2MTextureUnit.size(); // End the loop since we found a texture
 			}
 		}
+		meshmap.ID = s;                                     // This SubMesh's index
+		meshmap.Mode = M2MTextureUnit[t].unk1;              // unk1 is mode.
+		u8 animatedFlag = M2MTextureUnit[t].Flags & 0xFF;   // get first 8bits
+		u8 renderFlag = M2MTextureUnit[t].Flags >> 8;       // get the second 8bits
+		meshmap.order = M2MTextureUnit[t].renderOrder;      // Indicates how this effect should be applyed for instance 2 is an overlay
+		meshmap.block = renderFlag;
+		meshmap.Coordinates = fixCoordSystem(M2MSubmeshes[meshmap.ID].bb);// fix the coordinates since Y is depth in ModelViewSubmesh vectors but we use Z depth 
+		meshmap.flag = M2MRenderFlags[M2MTextureUnit[t].renderFlagsIndex].flags;
+		meshmap.blend = M2MRenderFlags[M2MTextureUnit[t].renderFlagsIndex].blending;
+		if (meshmap.blend > 1)
+			meshmap.solid = false;
+		else
+			meshmap.solid = true;
+		if (animatedFlag == 0)                             //is this an animated texture? Also may need to include the index to the texture animation (is it the same as the ID).
+			meshmap.animatedtexture = true;
+		else
+			meshmap.animatedtexture = false;
+		// trying to understand what this flag is
+		meshmap.unknown = M2MSubmeshes[meshmap.ID].unk3;
+		meshmap.Radius = M2MSubmeshes[meshmap.ID].Radius;
+		float B = M2MVertices[M2MSubmeshes[meshmap.ID].ofsVertex].pos.Z; 
+		float F = B;
+		for (int j = M2MSubmeshes[meshmap.ID].ofsVertex; j < M2MSubmeshes[meshmap.ID].ofsVertex + M2MSubmeshes[meshmap.ID].nVertex; j++)
+		{ 
+			if (M2MVertices[j].pos.Z > B)  // find the farthest(largest) depth value in the submesh
+			{
+				B = M2MVertices[j].pos.Z;
+			}
+			if (M2MVertices[j].pos.Z < F) // find the nearest(Smallest) depth value in the submesh
+			{
+				F = M2MVertices[j].pos.Z;
+			}
+		}
+		meshmap.Back = B;
+		meshmap.Front = F;
+		meshmap.Middle = meshmap.Coordinates.Z; // middle value for aabb
+		// Get X edges
+		meshmap.Xpos = meshmap.Coordinates.X;
+		meshmap.Xneg = meshmap.Coordinates.X;
+		for (int j = M2MSubmeshes[meshmap.ID].ofsVertex; j < M2MSubmeshes[meshmap.ID].ofsVertex + M2MSubmeshes[meshmap.ID].nVertex; j++)
+		{
+			if (M2MVertices[j].pos.X < meshmap.Xneg)
+			{
+				meshmap.Xneg = M2MVertices[j].pos.X;
+			}
+			if (M2MVertices[j].pos.X > meshmap.Xpos)
+			{
+				meshmap.Xpos = M2MVertices[j].pos.X;
+			}
+		}
+		// Get Y edges
+		meshmap.Ypos = meshmap.Coordinates.Y;
+		meshmap.Yneg = meshmap.Coordinates.Y;
+		for (int j = M2MSubmeshes[meshmap.ID].ofsVertex; j < M2MSubmeshes[meshmap.ID].ofsVertex + M2MSubmeshes[meshmap.ID].nVertex; j++)
+		{
+			if (M2MVertices[j].pos.Y < meshmap.Yneg)
+			{
+				meshmap.Yneg = M2MVertices[j].pos.Y;
+			}
+			if (M2MVertices[j].pos.Y > meshmap.Ypos)
+			{
+				meshmap.Ypos = M2MVertices[j].pos.Y;
+			}
+		}
+		// Set the Sort Point (currently using mode might be beater to use renderflag to determine sortpoint)
+		    //Mode 1 meshes
+		if (meshmap.Mode == 1){                         // Mountains and backdrop
+			meshmap.SortPoint = meshmap.Back;}          //farthest edge
+		if (meshmap.Mode == 1 && meshmap.Radius >= 2 && meshmap.Radius <= 6){     // Walls etc
+			meshmap.SortPoint = meshmap.Front;}         //near edge
+			//Mode 2 meshes
+		if (meshmap.Mode == 2 && meshmap.Radius > 50){  // Backdrop meshes
+			meshmap.SortPoint = meshmap.Back;}          //far edge though it comes out the same in northrend ui using middle or near
+		if (meshmap.Mode == 2 && meshmap.Radius > 10 && meshmap.Radius < 50){  // Large efects like light rays
+			meshmap.SortPoint = meshmap.Front;}         //Switch to far edge?
+		if (meshmap.Mode == 2 && meshmap.Radius >=2 && meshmap.Radius < 10){   // Medium None order2 effect meshes 
+			meshmap.SortPoint = meshmap.Front;}         //near edge
+		if (meshmap.Mode == 2 && meshmap.Radius < 2){   // Small None order2 effect meshes 
+			meshmap.SortPoint = meshmap.Middle;}        //should use their middle
+			//Order 2 meshes                            //Actualy the near edge might realy work better
+		if (meshmap.order == 2 && meshmap.Radius > 50){ // If an overlay is in the backdrop we need to use the middle value to interact with big meshes
+			meshmap.SortPoint = meshmap.Middle;}        //Middle point ( compaird to active edge)
+		if (meshmap.order == 2 && meshmap.Radius < 50){ // In the rest of the mesh we need to use the back edge.
+			meshmap.SortPoint = meshmap.Back;}          //back edge
+			
+		// Put the Populated Element into the Array
+		SubmeshMap.push_back(meshmap);
 	}
+	// copy elements to BufferMap
+	// Backdrop
+	core::array<scene::CM2Mesh::BufferInfo> Scene;
+	core::array<scene::CM2Mesh::BufferInfo> Overlays;
+	for (u16 b = 0; b < SubmeshMap.size(); b++)
+	{                                      // ToDo:: this filter is leaving large order 2 elements where they fall in backdrop. Overlay handling when finished will handle both size ranges of overlay
+		if (SubmeshMap[b].Radius > 60){                              // Backdrop
+			Scene.push_back(SubmeshMap[b]);}
+		if (SubmeshMap[b].Radius < 60 && SubmeshMap[b].order == 2){  // Might as well collect the over lays here
+			Overlays.push_back(SubmeshMap[b]);}
+	}
+	// Sort by SortPoint farthest to nearest
+	sortPointHighLow(Scene); 
+	// Now copy Backdrops into the mesh's BufferMap
+	for (u16 b = 0; b < Scene.size(); b++){
+		AnimatedMesh->BufferMap.push_back(Scene[b]);}
+	// Empty our Temporary Arrays
+	Scene.erase(0,Scene.size());
+	
+	// Middle 
+	for (u16 b = 0; b < SubmeshMap.size(); b++)
+	{
+		// get submeshes whose radius is not insainly large and block is less than 10   && SubmeshMap[b].order != 2 
+		if (SubmeshMap[b].Radius < 60 && SubmeshMap[b].solid == false && SubmeshMap[b].block < 10 && SubmeshMap[b].order !=2){
+			Scene.push_back(SubmeshMap[b]);
+		}
+	}
+	// sort them
+	sortPointHighLow(Scene);
+	// store them
+	for (u16 b = 0; b < Scene.size(); b++){
+		AnimatedMesh->BufferMap.push_back(Scene[b]);}
+	// Empty our temporary arrays
+	Scene.erase(0,Scene.size());
+	
+	// Solids.  //Put solids here Since I have a natural break here between forground and the rest of the scene? (Not nesasary to process them seperately but keeps the dragon out from behind the lightray beneath it so it doesnt shine white)
+	for (u16 b = 0; b < SubmeshMap.size(); b++)
+	{
+		// solids
+		if (SubmeshMap[b].Radius < 50 && SubmeshMap[b].solid == true){
+			Scene.push_back(SubmeshMap[b]);
+		}
+	}
+	sortPointHighLow(Scene);
+	// copy to BufferMap
+	for (u16 b = 0; b < Scene.size(); b++){
+		AnimatedMesh->BufferMap.push_back(Scene[b]);}
+	// Empty our temporary arrays
+	Scene.erase(0,Scene.size());
+	
+	// ForeGround.   //Get transparent submeshes whose radius is not insainly large and block is greater than or equal to 10
+	for (u16 b = 0; b < SubmeshMap.size(); b++)
+	{
+		if (SubmeshMap[b].Radius < 60 && SubmeshMap[b].solid == false && SubmeshMap[b].block >= 10 && SubmeshMap[b].order !=2){
+			Scene.push_back(SubmeshMap[b]);
+		}
+	}
+	// sort them
+	sortPointHighLow(Scene);
+	// copy them to the BufferMap
+	for (u16 b = 0; b < Scene.size(); b++){
+		AnimatedMesh->BufferMap.push_back(Scene[b]);}
+	// Empty our temporary arrays
+	Scene.erase(0,Scene.size());
+	
+	// Now insert overlays
+	InsertOverlays(Overlays,AnimatedMesh->BufferMap);
+	
+	// Clear Temps
+	Overlays.clear();
+	Scene.clear();
+	SubmeshMap.clear();
 
 
 ///////////////////////////////////////
@@ -652,9 +819,10 @@ for(u32 i=0;i<M2MVertices.size();i++)
 {
     M2Vertices.push_back(video::S3DVertex(core::vector3df(M2MVertices[i].pos.X,M2MVertices[i].pos.Y,M2MVertices[i].pos.Z),core::vector3df(M2MVertices[i].normal.X,M2MVertices[i].normal.Y,M2MVertices[i].normal.Z), video::SColor(255,100,100,100),M2MVertices[i].texcoords));
 }
-//Loop through the submeshes
-for(u32 i=0; i < currentView.Submesh.num;i++)//
+//Loop through the submeshes  // ToDo:: keep track of triangle offsets an number so we don't duplicate submeshes that exist in multiple views/.skins and store a simplified texture list in the cm2mesh so we can swap textures by currentview flag
+for(u32 I=0; I < currentView.Submesh.num;I++)// changed i to I so i can redirect this loop into the buffermap builing the mesh in my corrected order. If I make our CAnimatedMeshSceneNode render from the buffermap this will not be nessasary 
 {
+    u32 i = AnimatedMesh->BufferMap[I].ID; // also part of the redirect.
     //Now, M2MTriangles refers to M2MIndices and not to M2MVertices.
     scene::SSkinMeshBuffer *MeshBuffer = AnimatedMesh->addMeshBuffer(M2MSubmeshes[i].meshpartId);
 
@@ -679,7 +847,7 @@ for(u32 i=0; i < currentView.Submesh.num;i++)//
             scene::CM2Mesh::SWeight* weight = AnimatedMesh->addWeight(AnimatedMesh->getAllJoints()[boneIndex]);
             weight->strength=M2MVertices[j].weights[k];
             weight->vertex_id=MeshBuffer->Vertices_Standard.size()-1;
-            weight->buffer_id=i;
+            weight->buffer_id=I; // I insted of i for redirect
             }
 
         }
@@ -721,6 +889,42 @@ for(u32 i=0; i < currentView.Submesh.num;i++)//
             DEBUG(logdebug("Render Flags: %u %u",M2MRenderFlags[M2MTextureUnit[j].renderFlagsIndex].flags,M2MRenderFlags[M2MTextureUnit[j].renderFlagsIndex].blending));
             u16 renderflags = M2MRenderFlags[M2MTextureUnit[j].renderFlagsIndex].flags;
 
+			/*
+			renderflags's enumeration from some forum
+					RF_None = 0, 
+					RF_Unlit = 1, 
+					RF_Unfogged = 2,
+					RF_Unlit_Unfogged = 3,
+					RF_TwoSided = 4, 
+					RF_Unlit_Two_Sided = 5,
+					RF_Unfogged_TwoSided = 6,
+					RF_Unlit_Unfogged_TwoSided = 7,
+					RF_Billboard =8,
+					RF_Unlit_Billboard =9,
+					RF_Unfogged_Billboard =10,
+					RF_Unlit_Unfogged_Billboard =11,
+					RF_Billboard_TwoSided =12,
+					RF_Unlit_Billboard_TwoSided =13,
+					RF_Unfogged_Billboard_TwoSided =14,
+					RF_Unlit_Unfogged_Billboard_TwoSided =15,
+					RF_Not_ZBuffered = 16,   // 0x10
+					RF_Not_ZBuffered_Unlit =17,
+					RF_Not_ZBuffered_Unfogged  =18,
+					RF_Not_ZBuffered_Unlit_Unfogged =19,
+					RF_Not_ZBuffered_TwoSided =20,
+					RF_Not_ZBuffered_Unlit_Two_Sided =21,
+					RF_Not_ZBuffered_Unfogged_TwoSided =22,
+					RF_Not_ZBuffered_Unlit_Unfogged_TwoSided =23,
+					RF_Not_ZBuffered_Billboard =24,
+					RF_Not_ZBuffered_Unlit_Billboard =25,
+					RF_Not_ZBuffered_Unfogged_Billboard =26,
+					RF_Not_ZBuffered_Unlit_Unfogged_Billboard =27,
+					RF_Not_ZBuffered_Billboard_TwoSided =28,
+					RF_Not_ZBuffered_Unlit_Billboard_TwoSided =29,
+					RF_Not_ZBuffered_Unfogged_Billboard_TwoSided =30,
+					RF_Not_ZBuffered_Unlit_Unfogged_Billboard_TwoSided =31
+			*/
+			
             MeshBuffer->getMaterial().Lighting=(renderflags & 0x01)?false:true;
             MeshBuffer->getMaterial().FogEnable=(renderflags & 0x02)?false:true;
             MeshBuffer->getMaterial().BackfaceCulling=(renderflags & 0x04)?false:true;

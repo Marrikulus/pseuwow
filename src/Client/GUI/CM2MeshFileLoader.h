@@ -277,6 +277,70 @@ private:
     core::array<u16> M2Indices;
     core::array<scene::ISkinnedMesh::SJoint> M2Joints;
 
+	void sortPointHighLow (core::array<scene::CM2Mesh::BufferInfo> &BlockList)
+	{
+		  scene::CM2Mesh::BufferInfo temp;
+
+		  for(int i = 0; i < BlockList.size( ) - 1; i++)
+		  {
+			   for (int j = i + 1; j < BlockList.size( ); j++)
+			   {
+				   if (BlockList[ i ].Back == BlockList[ j ].Back && BlockList[ i ].Front == BlockList[ j ].Front && BlockList[ i ].block > BlockList[ j ].block) // If 2 submeshes are in exactly the same spot the one with a higher block value is nearest
+				   {
+					   temp = BlockList[ i ];    //swapping entire element
+					   BlockList[ i ] = BlockList[ j ];
+					   BlockList[ j ] = temp;
+				   }
+				   else if (BlockList[ i ].SortPoint < BlockList[ j ].SortPoint) // The highest sort point value is farthest from camera
+				   {
+					   temp = BlockList[ i ];    //swapping entire element
+					   BlockList[ i ] = BlockList[ j ];
+					   BlockList[ j ] = temp;
+				   }
+			   }
+		  }
+		  return;
+	}
+	
+	void InsertOverlays (core::array<scene::CM2Mesh::BufferInfo> &OverLay, core::array<scene::CM2Mesh::BufferInfo> &Destination)
+	{
+		int Position = -1;     // The starting position of the overlay
+		// Loop through overlays
+		for(int O = 0; O < OverLay.size( ) - 1; O++)
+		{ 
+			// Now find the position the overlay should have in the destination array
+			//for(int P = 0; P < Destination.size() - 1; P++)
+			int P = 0;
+			while (Position == -1)
+			{
+				if(OverLay[O].SortPoint > Destination[P].SortPoint)   // if we found the first mesh physicaly nearer than the overlay
+				{
+					Position = P-1;                                   // Set starting position index for the overly in the destination array
+					//P=Destination.size() - 1;                         // end this loop since we found this overlay's position
+				}
+				P++;
+			}
+			int d = Position;  // The starting point to work back from
+			// Loop backwards through the Destination array starting at element [Position] and ending at the qualifing element
+			bool loop = true;
+			while(loop == true)  //for(int d = 0; d <Destination.size( ) - 1; d++)  //for(d > (-1); d--)
+			{
+				// Move backwards from Position compairing each element to the current overlay to find the first element 
+				// larger than the overlay and directly behind it (not offset to the side)
+				// LeftHand cords +x are to the right and +y are up.  Should I get the real width and height insted of subing radius? 
+				//if(OverLay[O].Coordinates.X+OverLay[O].Radius <= Destination[d].Coordinates.X+Destination[d].Radius && OverLay[O].Coordinates.X-OverLay[O].Radius <= Destination[d].Coordinates.X-Destination[d].Radius && OverLay[O].Coordinates.Y+OverLay[O].Radius <= Destination[d].Coordinates.Y+Destination[d].Radius && OverLay[O].Coordinates.Y-OverLay[O].Radius <= Destination[d].Coordinates.Y-Destination[d].Radius)
+				if(OverLay[O].Xpos <= Destination[d].Xpos && OverLay[O].Xneg >= Destination[d].Xneg && OverLay[O].Ypos <= Destination[d].Ypos && OverLay[O].Yneg >= Destination[d].Yneg)
+				{
+					// Insert the overlay on top of the qualified element
+					Destination.insert(OverLay[O], d+1);
+					// End loop so we don't insert multiple copies
+					loop = false;
+				}
+				d--;  // Move to the next farthest element
+			}
+		}
+		return;
+	}
 
 };
 }//namespace scene
