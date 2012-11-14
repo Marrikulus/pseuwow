@@ -242,15 +242,31 @@ void loadModel(const c8* fn)
 	//Log submesh info since treview can't side scroll
 	FILE* s = fopen("viewer_submesh.txt","w");
 	for(u32 i=0;i<m->getMeshBufferCount();i++)
-    {
+    {  
+	  // Create String handlers
       std::string info = "Submesh ";
 	  std::ostringstream number;
+	  std::ostringstream SubMeshMode;
+	  std::ostringstream Order;
+	  std::ostringstream Block;
+	  std::ostringstream Unknown;
+	  std::ostringstream Radius;
+	  std::ostringstream ZDepth;
+	  // Slip titles into handlers
+	  SubMeshMode<< "  Mode:";
+	  Order<< " Order:";
+	  Block<< " Block:";
+	  Unknown<< " UnknownFlag:";
+	  Radius<< " Radius:";
+	  ZDepth<< "Depth, Back:";
 	  number<<  i;
+	  // Put the data into the Handlers and Print it to the File
 	  info += number.str();
-	  fwrite(info.c_str(),1,info.size(),s);
-      //logdetail("Viewer:: %s",info); //, number.str());
+	  fwrite(info.c_str(),1,info.size(),s); // print to file
+	  fseek(s,1,true); // Isert space in File
       info = "Texture: ";
-	  fwrite(info.c_str(),1,info.size(),s);
+	  fwrite(info.c_str(),1,info.size(),s); // print to file
+	  fseek(s,1,true); // Insert space in File
 	  irr::io::SNamedPath name;
       if(m->getMeshBuffer(i)->getMaterial().getTexture(0)){
 		name = m->getMeshBuffer(i)->getMaterial().getTexture(0)->getName();
@@ -259,30 +275,77 @@ void loadModel(const c8* fn)
       else
         info = "none";
 	  info = name.getInternalName().c_str();
-	  fwrite(info.c_str(),1,info.size(),s);
+	  fwrite(info.c_str(),1,info.size(),s); // print to file
+	  fseek(s,1,true); // Isert space in File
       info = "Material Type: ";
-      switch(m->getMeshBuffer(i)->getMaterial().MaterialType)
+      switch(((scene::CM2Mesh*)(m))->BufferMap[i].blend)
       {
-        case video::EMT_SOLID:
+	  case 0:
           info += "SOLID";
           break;
-        case video::EMT_TRANSPARENT_ALPHA_CHANNEL_REF:
+	  case 1:
           info += "ALPHA_REF";
           break;
-        case video::EMT_ONETEXTURE_BLEND:
-          info += "BLEND";
+	  case 2:
+          info += "ALPHA_BLEND";
           break;
+	  case 3:
+		  info += "ADDITIVE";
+		  break;
+	  case 4:
+		  info += "ADDITIVE_ALPHA";
+		  break;
+	  case 5:
+		  info += "MODULATE";
+		  break;
+	  case 6:
+		  info += "MODULATE_2X ?";
+		  break;
       }
-      //logdetail("Viewer:: %s",info);
-	  fwrite(info.c_str(),1,info.size(),s);
+	  fwrite(info.c_str(),1,info.size(),s); 
+      SubMeshMode<< ((scene::CM2Mesh*)(m))->BufferMap[i].Mode; //get submesh's mode
+	  std::string Mode = SubMeshMode.str();
+	  fwrite(Mode.c_str(),1,Mode.size(),s); // print to file
+	  fseek(s,1,true); // Isert space in File
+	  Order<< ((scene::CM2Mesh*)(m))->BufferMap[i].order;
+	  Block<< ((scene::CM2Mesh*)(m))->BufferMap[i].block;
+	  Unknown<< ((scene::CM2Mesh*)(m))->BufferMap[i].unknown;
+	  Radius<< ((scene::CM2Mesh*)(m))->BufferMap[i].Radius;
+	  ZDepth<< ((scene::CM2Mesh*)(m))->BufferMap[i].Back;
+	  ZDepth<< "Front,";
+	  ZDepth<< ((scene::CM2Mesh*)(m))->BufferMap[i].Front;
+	  ZDepth<< "Middle,";
+	  ZDepth<< ((scene::CM2Mesh*)(m))->BufferMap[i].Middle;
+	  std::string order = Order.str();
+	  std::string block = Block.str();
+	  std::string unKnown = Unknown.str();
+	  std::string radius = Radius.str();
+	  std::string zdepth = ZDepth.str();
+	  fwrite(order.c_str(),1,order.size(),s);  // print to file
+	  fseek(s,1,true); // Isert space in File
+	  fwrite(block.c_str(),1,block.size(),s);  // print to file
+	  fseek(s,1,true); // Isert space in File
+	  fwrite(unKnown.c_str(),1,unKnown.size(),s); // print to file
+	  fseek(s,1,true); // Isert space in File
+	  fwrite(radius.c_str(),1,radius.size(),s); // print to file
+	  fseek(s,1,true); // Isert space in File
+	  fwrite(zdepth.c_str(),1,zdepth.size(),s); // print to file
+	  fseek(s,1,true); // Isert space in File
       info = "FogEnable: ";
       info += m->getMeshBuffer(i)->getMaterial().FogEnable?"true":"false";
-      //logdetail("Viewer:: %s",info);
-	  fwrite(info.c_str(),1,info.size(),s);
+	  fwrite(info.c_str(),1,info.size(),s); // print to file
+	  fseek(s,1,true); // Isert space in File
       info = "BackfaceCulling: ";
       info += m->getMeshBuffer(i)->getMaterial().BackfaceCulling?"true":"false";
-      //logdetail("Viewer:: %s",info);
-	  fwrite(info.c_str(),1,info.size(),s);
+	  fwrite(info.c_str(),1,info.size(),s); // print to file
+	  fseek(s,1,true); // Isert space in File
+	  std::ostringstream flag;
+	  flag<< "RenderFlag: ";
+      flag<< ((scene::CM2Mesh*)(m))->BufferMap[i].flag;
+	  std::string RFlag = flag.str();
+	  fwrite(RFlag.c_str(),1,RFlag.size(),s); // print to file
+	  fseek(s,1,true); // Isert space in File
+	  fwrite("\r\n",1,4,s); //set eol (end of line)
     }
 	fclose(s);
 	//end log
