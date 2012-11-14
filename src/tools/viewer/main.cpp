@@ -20,6 +20,7 @@ tutorial, we use a lot stuff from the gui namespace.
 #include "GUI/CWMOMeshFileLoader.h"
 #include "GUI/MemoryInterface.h"
 #include "MemoryDataHolder.h"
+#include "irrlicht/CAnimatedMeshSceneNode.h"
 
 
 using namespace irr;
