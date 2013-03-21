@@ -50,7 +50,13 @@ struct ModelHeader {
     numofs TransparencyLookup;
     numofs TexAnimLookup;
 
-	f32 floats[14];
+	//f32 floats[14];
+	core::vector3df VertexBox1; 
+	core::vector3df VertexBox2;
+	float VertexRadius;
+	core::vector3df BoundingBox1; 
+	core::vector3df BoundingBox2;
+	float BoundingRadius;
 
     numofs BoundingTriangles;
     numofs BoundingVertices;
@@ -102,8 +108,9 @@ struct ModelViewSubmesh { //Curse you BLIZZ for not using numofs here
     u16 ofsTris;//Starting Triangle index
     u16 nTris;
     u16 nBone, ofsBone, unk3, unk4;
-    core::vector3df v;
-    float unkf[4];
+    core::vector3df CenterOfMass; // Average of all vertices
+	core::vector3df BB; // center of an axis aligned bounding box built around all this submesh's vertices
+    float Radius; // Submesh Radius
 };
 
 struct TextureUnit{
@@ -113,7 +120,7 @@ struct TextureUnit{
     s16 colorIndex;
     u16 renderFlagsIndex;
     u16 TextureUnitNumber;
-    u16 unk1;
+    u16 Mode;
     u16 textureIndex;
     u16 TextureUnitNumber2;
     u16 transparencyIndex;
@@ -207,6 +214,31 @@ struct Light{
     AnimBlock Unknown;
 };
 
+
+// X-dimensional structure
+struct XZone{
+	float XLeft;
+	float XRight;
+	irr::core::array<scene::CM2Mesh::BufferInfo> submeshes;  // Submeshes in this zone
+};
+
+
+// Y-dimensional structure
+struct YZone{
+	float YTop;
+	float YBottom;
+	float YDist; // set to the diference of camera.Y and YAverage 
+	irr::core::array<XZone> XZones; // XZones in this Y zone
+};
+
+
+// Z-dimensional structure
+struct ZZone{
+	float ZFront;
+	float ZBack;
+	irr::core::array<YZone> YZones; // YZones in this Z zone
+};
+
 class CM2MeshFileLoader : public IMeshLoader
 {
 public:
@@ -276,6 +308,44 @@ private:
     core::array<video::S3DVertex> M2Vertices;
     core::array<u16> M2Indices;
     core::array<scene::ISkinnedMesh::SJoint> M2Joints;
+
+	void sortY (core::array<YZone> &Array)
+	{
+		  YZone temp;
+
+		  for(int i = 0; i < Array.size( ) - 1; i++)
+		  {
+			   for (int j = i + 1; j < Array.size( ); j++)
+			   {
+				   if (Array[ i ].YDist < Array[ j ].YDist) // The highest YDist value is farthest from camera
+				   {
+					   temp = Array[ i ];    //swapping entire element
+					   Array[ i ] = Array[ j ];
+					   Array[ j ] = temp;
+				   }
+			   }
+		  }
+		  return;
+	}
+
+	void sortX (core::array<scene::CM2Mesh::BufferInfo> &SubmeshList)
+	{
+		  scene::CM2Mesh::BufferInfo temp;
+
+		  for(int i = 0; i < SubmeshList.size( ) - 1; i++)
+		  {
+			   for (int j = i + 1; j < SubmeshList.size( ); j++)
+			   {
+				   if (SubmeshList[ i ].Coordinates.X > SubmeshList[ j ].Coordinates.X) // The lowest X value is farthest left
+				   {
+					   temp = SubmeshList[ i ];    //swapping entire element
+					   SubmeshList[ i ] = SubmeshList[ j ];
+					   SubmeshList[ j ] = temp;
+				   }
+			   }
+		  }
+		  return;
+	}
 
 	void sortPointHighLow (core::array<scene::CM2Mesh::BufferInfo> &BlockList)
 	{

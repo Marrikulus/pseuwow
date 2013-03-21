@@ -566,6 +566,7 @@ bool CM2MeshFileLoader::load()
 
 // Populate a temporary array with submesh data to make a map of correct submesh order
 	scene::CM2Mesh::BufferInfo meshmap;
+	irr::core::array<scene::CM2Mesh::BufferInfo> SubmeshMap;
 	for (u16 s = 0; s < M2MSubmeshes.size(); s++)           // Loop through the submeshes
 	{
 		u16 t;
@@ -576,12 +577,12 @@ bool CM2MeshFileLoader::load()
 			}
 		}
 		meshmap.ID = s;                                     // This SubMesh's index
-		meshmap.Mode = M2MTextureUnit[t].unk1;              // unk1 is mode.
-		u8 animatedFlag = M2MTextureUnit[t].Flags & 0xFF;   // get first 8bits
-		u8 renderFlag = M2MTextureUnit[t].Flags >> 8;       // get the second 8bits
+		meshmap.Mode = M2MTextureUnit[t].Mode;              // This is mode.
+		u8 animatedFlag = M2MTextureUnit[t].Flags & 0xFF;   // get first 8bits this flag sets texture animation
+		u8 renderFlag = M2MTextureUnit[t].Flags >> 8;       // get the second 8bits this flag sets some sort of submesh grouping
 		meshmap.order = M2MTextureUnit[t].renderOrder;      // Indicates how this effect should be applyed for instance 2 is an overlay
 		meshmap.block = renderFlag;
-		meshmap.Coordinates = fixCoordSystem(M2MSubmeshes[meshmap.ID].bb);// fix the coordinates since Y is depth in ModelViewSubmesh vectors but we use Z depth 
+		meshmap.Coordinates = fixCoordSystem(M2MSubmeshes[meshmap.ID].CenterOfMass);// fix the coordinates since Y is depth in ModelViewSubmesh vectors but we use Z depth 
 		meshmap.flag = M2MRenderFlags[M2MTextureUnit[t].renderFlagsIndex].flags;
 		meshmap.blend = M2MRenderFlags[M2MTextureUnit[t].renderFlagsIndex].blending;
 		if (meshmap.blend > 1)
@@ -663,7 +664,7 @@ bool CM2MeshFileLoader::load()
 		// Put the Populated Element into the Array
 		SubmeshMap.push_back(meshmap);
 	}
-	// copy elements to BufferMap
+	/*// copy elements to BufferMap
 	// Backdrop
 	core::array<scene::CM2Mesh::BufferInfo> Scene;
 	core::array<scene::CM2Mesh::BufferInfo> Overlays;
@@ -729,11 +730,100 @@ bool CM2MeshFileLoader::load()
 	Scene.erase(0,Scene.size());
 	
 	// Now insert overlays
-	InsertOverlays(Overlays,AnimatedMesh->BufferMap);
+	InsertOverlays(Overlays,AnimatedMesh->BufferMap);*/
+
+	///////
+	// Dimensional Partitioning
+	///////
+	// Might need to do this only for meshes big enough to be a scene
+
+	// Array for z dimension zones
+	irr::core::array<ZZone> ZZones;
+	u16 zonesize = 10; // this may need to be 5 not shure
+	u16 MeshRadius;
+	// Set mesh radius  
+	float remainder = fmod(header.BoundingRadius , zonesize);  // It must be evenly divisible by zonesize
+	if (remainder > 0){   // So fix it if nessasary
+		MeshRadius = header.BoundingRadius + (zonesize - remainder);
+	}
+	else {
+		MeshRadius = header.BoundingRadius;
+	}
+	// Loop from far edge of the mesh spliting it into ZZones
+	ZZone ZTemp; 
+	for (u16 Z = 0+MeshRadius; Z > 0-MeshRadius; Z-= zonesize){
+		// In the current ZZone loop through YZones
+		YZone YTemp;
+		for (u16 Y = 0+MeshRadius; Y > 0-MeshRadius; Y-= zonesize){
+			// In the current YZone loop through XZones
+			for (u16 X = 0-MeshRadius; X < 0+MeshRadius; X+= zonesize){
+				XZone XTemp;
+				// Define the search zone
+				ZTemp.ZBack = Z;
+				ZTemp.ZFront = Z-zonesize;
+				YTemp.YTop = Y;
+				YTemp.YBottom = Y-zonesize;
+				XTemp.XLeft = X;
+				XTemp.XRight = X+zonesize;
+				// Set the distance of the YZone from the cmera's y coord
+				float YAverage = (YTemp.YTop - YTemp.YBottom)/2;
+				if (YAverage > 2.44f){
+					YTemp.YDist = YAverage - 2.44f;
+				}
+				else{
+					YTemp.YDist = 2.44f - YAverage;
+				}
+				// loop through submeshes if any are in our current x-y-z zones push them into XZone.SubMeshes
+				for (u16 S = 0; S < SubmeshMap.size();){
+					if (SubmeshMap[S].Coordinates.Z < ZTemp.ZBack && SubmeshMap[S].Coordinates.Z > ZTemp.ZFront && SubmeshMap[S].Coordinates.Y < YTemp.YTop && SubmeshMap[S].Coordinates.Y > YTemp.YBottom && SubmeshMap[S].Coordinates.X > XTemp.XLeft && SubmeshMap[S].Coordinates.X < XTemp.XRight){
+						// Copy submeshes that belong in this zone to XTemp
+						XTemp.submeshes.push_back(SubmeshMap[S]);
+						// Delete the copied submesh from the submesh array
+						SubmeshMap.erase(S);
+					}
+					// correct S so it points to the next object
+					else{
+						S++;
+					}
+				}
+				// If this zone has submeshes sort them by centermass.x and store XTemp in Ytemp
+				if (XTemp.submeshes.size() > 0){
+					sortX(XTemp.submeshes);
+					YTemp.XZones.push_back(XTemp);
+				}
+			}
+			// If we have stored any XZones we need to store YTemp
+			if (YTemp.XZones.size() > 0){
+				ZTemp.YZones.push_back(YTemp); // There was no need to sort XZones since they are created in left to right order
+			}
+		}
+		// If we stored YZones we need to store the ZZone
+		if (ZTemp.YZones.size() > 0){
+			// Sort these YZones by largest YDist to the smallest
+			sortY(ZTemp.YZones);
+			ZZones.push_back(ZTemp);
+		}
+	}
+	// Now we have a dimensionaly partitioned scene and all submeshes should be in order
+		
+	// Next loop through zZones and copy submeshes data elements to the cm2mesh
+	for (u16 Z = 0; Z < ZZones.size(); Z++){
+		// lopping through yZones
+		for (u16 Y = 0; Y < ZZones[Z].YZones.size(); Y++){
+			// looping through xZones
+			for (u16 X = 0; X < ZZones[Z].YZones[Y].XZones.size(); X++){
+				// looping through submeshes pushing them into the cm2mesh
+				for (u16 S = 0; S < ZZones[Z].YZones[Y].XZones[X].submeshes.size(); S++){
+					AnimatedMesh->BufferMap.push_back(ZZones[Z].YZones[Y].XZones[X].submeshes[S]);
+				}
+			}
+		}
+	}
 	
-	// Clear Temps
+	/*// Clear Temps
 	Overlays.clear();
-	Scene.clear();
+	Scene.clear();*/
+	ZZones.clear();
 	SubmeshMap.clear();
 
 

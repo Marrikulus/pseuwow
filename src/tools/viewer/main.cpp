@@ -16,11 +16,12 @@ tutorial, we use a lot stuff from the gui namespace.
 #include <irrlicht/irrlicht.h>
 #include <iostream>
 #include "common.h"
+#include "os.h"
 #include "GUI/CM2MeshFileLoader.h"
 #include "GUI/CWMOMeshFileLoader.h"
 #include "GUI/MemoryInterface.h"
 #include "MemoryDataHolder.h"
-#include "irrlicht/CAnimatedMeshSceneNode.h"
+#include "CAnimatedMeshSceneNode.h"
 
 
 using namespace irr;
