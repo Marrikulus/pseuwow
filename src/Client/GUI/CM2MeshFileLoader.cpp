@@ -4,6 +4,7 @@
 #include "MemoryInterface.h"
 #include "CM2MeshFileLoader.h"
 #include "common.h"
+#include "windows.h"
 
 namespace irr
 {
@@ -81,60 +82,56 @@ void CM2MeshFileLoader::ReadVertices()
 
 void CM2MeshFileLoader::ReadViewData(io::IReadFile* file)
 {
-    //Vertex indices of a specific view.Local to View 0
-    if(M2MIndices.size()>0)
-        M2MIndices.clear();
+    SkinData TempSkin;
+	M2MSkins.push_back(TempSkin);  // Store an empty veiw. 
 
-    u16 tempM2Index;
-    file->seek(currentView.Index.ofs);
-    for(u32 i =0;i<currentView.Index.num;i++)
-    {
-        file->read(&tempM2Index,sizeof(u16));
-        M2MIndices.push_back(tempM2Index);
-    }
-    DEBUG(logdebug("Read %u/%u Indices",M2MIndices.size(),currentView.Index.num));
+	//Vertex indices of a specific view.  Local to currentView
+	u16 tempM2Index;
+		
+	file->seek(currentView.Index.ofs);
+	for(u32 i =0;i<currentView.Index.num;i++)
+	{
+		file->read(&tempM2Index,sizeof(u16));
+		M2MSkins.getLast().M2MIndices.push_back(tempM2Index);
+	}
+	DEBUG(logdebug("Read %u/%u Indices",M2MSkins.getLast().M2MIndices.size(),currentView.Index.num));
 
-    //Triangles. Data Points point to the Vertex Indices, not the vertices themself. 3 Points = 1 Triangle, Local to View 0
-    if(M2MTriangles.size()>0)
-        M2MTriangles.clear();
 
-    u16 tempM2Triangle;
-    file->seek(currentView.Triangle.ofs);
-    for(u32 i =0;i<currentView.Triangle.num;i++)
-    {
-        file->read(&tempM2Triangle,sizeof(u16));
-        M2MTriangles.push_back(tempM2Triangle);
-    }
-    DEBUG(logdebug("Read %u/%u Triangles",M2MTriangles.size(),currentView.Triangle.num));
-    //Submeshes, Local to View 0
-    if(M2MSubmeshes.size()>0)
-        M2MSubmeshes.clear();
+	//Triangles. Data Points point to the Vertex Indices, not the vertices themself. 3 Points = 1 Triangle, Local to currentView
+	u16 tempM2Triangle;
+		
+	file->seek(currentView.Triangle.ofs);
+	for(u32 i =0;i<currentView.Triangle.num;i++)
+	{
+		file->read(&tempM2Triangle,sizeof(u16));
+		M2MSkins.getLast().M2MTriangles.push_back(tempM2Triangle);
+	}
+	DEBUG(logdebug("Read %u/%u Triangles",M2MSkins.getLast().M2MTriangles.size(),currentView.Triangle.num));
+	//Submeshes, Local to currentView
+	ModelViewSubmesh tempM2Submesh;
+		
+	file->seek(currentView.Submesh.ofs);
+	for(u32 i =0;i<currentView.Submesh.num;i++)
+	{
+		file->read(&tempM2Submesh,sizeof(ModelViewSubmesh)-(header.version==0x100?16:0));
+		M2MSkins.getLast().M2MSubmeshes.push_back(tempM2Submesh);
+		DEBUG(logdebug("Submesh %u MeshPartID %u",i,tempM2Submesh.meshpartId));
+	//    std::cout<< "Submesh " <<i<<" ID "<<tempM2Submesh.meshpartId<<" starts at V/T "<<tempM2Submesh.ofsVertex<<"/"<<tempM2Submesh.ofsTris<<" and has "<<tempM2Submesh.nVertex<<"/"<<tempM2Submesh.nTris<<" V/T\n";
+	}
+	DEBUG(logdebug("Read %u/%u Submeshes",M2MSkins.getLast().M2MSubmeshes.size(),currentView.Submesh.num));
 
-    ModelViewSubmesh tempM2Submesh;
-    file->seek(currentView.Submesh.ofs);
-    for(u32 i =0;i<currentView.Submesh.num;i++)
-    {
-        file->read(&tempM2Submesh,sizeof(ModelViewSubmesh)-(header.version==0x100?16:0));
-        M2MSubmeshes.push_back(tempM2Submesh);
-        DEBUG(logdebug("Submesh %u MeshPartID %u",i,tempM2Submesh.meshpartId));
-    //    std::cout<< "Submesh " <<i<<" ID "<<tempM2Submesh.meshpartId<<" starts at V/T "<<tempM2Submesh.ofsVertex<<"/"<<tempM2Submesh.ofsTris<<" and has "<<tempM2Submesh.nVertex<<"/"<<tempM2Submesh.nTris<<" V/T\n";
-    }
-    DEBUG(logdebug("Read %u/%u Submeshes",M2MSubmeshes.size(),currentView.Submesh.num));
 
-    //Texture units. Local to view 0
-    TextureUnit tempM2TexUnit;
-    if(!M2MTextureUnit.empty())
-    {
-        M2MTextureUnit.clear();
-    }
-    file->seek(currentView.Tex.ofs);
-    for(u32 i=0;i<currentView.Tex.num;i++)
-    {
-        file->read(&tempM2TexUnit,sizeof(TextureUnit));
-        M2MTextureUnit.push_back(tempM2TexUnit);
-    DEBUG(logdebug(" TexUnit %u: Submesh: %u %u Render Flag: %u TextureUnitNumber: %u %u TTU: %u",i,tempM2TexUnit.submeshIndex1,tempM2TexUnit.submeshIndex2, tempM2TexUnit.renderFlagsIndex, tempM2TexUnit.TextureUnitNumber, tempM2TexUnit.TextureUnitNumber2 ,tempM2TexUnit.textureIndex));
-    }
-    DEBUG(logdebug("Read %u Texture Unit entries for View 0",M2MTextureUnit.size()));
+	//Texture units. Local to currentView
+	TextureUnit tempM2TexUnit;
+		
+	file->seek(currentView.Tex.ofs);
+	for(u32 i=0;i<currentView.Tex.num;i++)
+	{
+		file->read(&tempM2TexUnit,sizeof(TextureUnit));
+		M2MSkins.getLast().M2MTextureUnit.push_back(tempM2TexUnit);
+	DEBUG(logdebug(" TexUnit %u: Submesh: %u %u Render Flag: %u TextureUnitNumber: %u %u TTU: %u",i,tempM2TexUnit.submeshIndex1,tempM2TexUnit.submeshIndex2, tempM2TexUnit.renderFlagsIndex, tempM2TexUnit.TextureUnitNumber, tempM2TexUnit.TextureUnitNumber2 ,tempM2TexUnit.textureIndex));
+	}
+	DEBUG(logdebug("Read %u Texture Unit entries for View %u",M2MSkins.getLast().M2MTextureUnit.size(), M2MSkins.size()-1));
 
 }
 
@@ -495,6 +492,229 @@ void CM2MeshFileLoader::ReadTextureDefinitions()
 }
 
 
+void CM2MeshFileLoader::CopyAnimationsToMesh(CM2Mesh * CurrentMesh)
+{
+	for(u32 i=0;i<M2MAnimations.size();i++)
+	{
+	  CurrentMesh->newAnimation(M2MAnimations[i].animationID,M2MAnimations[i].start,M2MAnimations[i].end,M2MAnimations[i].probability);
+	}
+
+
+	scene::CM2Mesh::SJoint* Joint;
+	for(u32 i=0;i<M2MBones.size();i++)
+	{
+	  if(M2MBones[i].parentBone == -1)
+	  {
+		  ParentJoint=(scene::CM2Mesh::SJoint*)0;
+	  }
+	  else
+	  {
+		  ParentJoint=CurrentMesh->getAllJoints()[M2MBones[i].parentBone];
+	  }
+	  Joint=CurrentMesh->addJoint(ParentJoint);
+
+	  if(M2MBones[i].translation.timestamps.size()>0)
+	  {
+		for(u32 j=0;j<M2MBones[i].translation.timestamps.size();j++)
+		{
+		  scene::CM2Mesh::SPositionKey* pos=CurrentMesh->addPositionKey(Joint);
+		  pos->frame=M2MBones[i].translation.timestamps[j];
+		  pos->position=fixCoordSystem(core::vector3df(M2MBones[i].translation.values[j*3],M2MBones[i].translation.values[j*3+1],M2MBones[i].translation.values[j*3+2]));
+		}
+	  }
+	  if(M2MBones[i].rotation.timestamps.size()>0)
+	  {
+		for(u32 j=0;j<M2MBones[i].rotation.timestamps.size();j++)
+		{
+		  scene::CM2Mesh::SRotationKey* rot=CurrentMesh->addRotationKey(Joint);
+		  rot->frame=M2MBones[i].rotation.timestamps[j];
+		  core::quaternion tempQ=core::quaternion(M2MBones[i].rotation.values[j*4+0],M2MBones[i].rotation.values[j*4+1],M2MBones[i].rotation.values[j*4+2],M2MBones[i].rotation.values[j*4+3]);
+		  tempQ = fixQuaternion(tempQ);
+		  tempQ.normalize();
+		  rot->rotation=tempQ;
+		}
+	  }
+
+	  if(M2MBones[i].scaling.timestamps.size()>0)
+	  {
+		for(u32 j=0;j<M2MBones[i].scaling.timestamps.size();j++)
+		{
+		  scene::CM2Mesh::SScaleKey* scale=CurrentMesh->addScaleKey(Joint);
+		  scale->frame=M2MBones[i].scaling.timestamps[j];
+		  scale->scale=core::vector3df(M2MBones[i].scaling.values[j*3],M2MBones[i].scaling.values[j*3+1],M2MBones[i].scaling.values[j*3+2]);
+		}
+	  }
+
+	  Joint->Animatedposition=M2MBones[i].PivotPoint;
+	  Joint->Animatedscale=core::vector3df(1.0f,1.0f,1.0f);
+	  Joint->Animatedrotation=core::quaternion(0.0f,0.0f,0.0f,1.0f);
+
+	  core::matrix4 positionMatrix;
+	  positionMatrix.setTranslation( Joint->Animatedposition );
+
+	  core::matrix4 rotationMatrix = Joint->Animatedrotation.getMatrix();
+
+	  core::matrix4 scaleMatrix;
+	  scaleMatrix.setScale( Joint->Animatedscale );
+
+	  Joint->GlobalMatrix = positionMatrix * rotationMatrix * scaleMatrix;
+	}
+}
+
+
+void CM2MeshFileLoader::BuildANewSubMesh(CM2Mesh * CurrentMesh, u32 v, u32 i)
+{
+	//Now, M2MTriangles refers to M2MIndices and not to M2MVertices.
+    scene::SSkinMeshBuffer *MeshBuffer = CurrentMesh->addMeshBuffer(M2MSkins[v].M2MSubmeshes[i].meshpartId);
+
+    //Put the Indices and Vertices of the Submesh into a mesh buffer
+    //Each Submesh contains only the Indices and Vertices that belong to it.
+    //Because of this the Index values for the Submeshes must be corrected by the Vertex offset of the Submesh
+    for(u32 j=M2MSkins[v].M2MSubmeshes[i].ofsTris;j<M2MSkins[v].M2MSubmeshes[i].ofsTris+M2MSkins[v].M2MSubmeshes[i].nTris;j++)
+    {
+        MeshBuffer->Indices.push_back(M2MSkins[v].M2MIndices[M2MSkins[v].M2MTriangles[j]]-M2MSkins[v].M2MSubmeshes[i].ofsVertex);
+        if(M2MSkins[v].M2MIndices[M2MSkins[v].M2MTriangles[j]]<M2MSkins[v].M2MSubmeshes[i].ofsVertex)
+          logerror("Index %u < ofsVertex %u",M2MSkins[v].M2MIndices[M2MSkins[v].M2MTriangles[j]],M2MSkins[v].M2MSubmeshes[i].ofsVertex);
+    }
+
+    for(u32 j=M2MSkins[v].M2MSubmeshes[i].ofsVertex;j<M2MSkins[v].M2MSubmeshes[i].ofsVertex+M2MSkins[v].M2MSubmeshes[i].nVertex;j++)
+    {
+        MeshBuffer->Vertices_Standard.push_back(M2Vertices[j]);
+        for(u32 k=0; k<4; k++)
+        {
+            if((M2MVertices[j].weights[k])>0)
+            {
+            u32 boneIndex = M2MVertices[j].bones[k];
+            scene::CM2Mesh::SWeight* weight = CurrentMesh->addWeight(CurrentMesh->getAllJoints()[boneIndex]);
+            weight->strength=M2MVertices[j].weights[k];
+            weight->vertex_id=MeshBuffer->Vertices_Standard.size()-1;
+            weight->buffer_id=i; 
+            }
+
+        }
+    }
+
+    MeshBuffer->recalculateBoundingBox();
+    for(u32 j=0;j<M2MSkins[v].M2MTextureUnit.size();j++)//Loop through texture units
+    {
+        if(M2MSkins[v].M2MTextureUnit[j].submeshIndex1==i && !M2MTextureFiles[M2MTextureLookup[M2MSkins[v].M2MTextureUnit[j].textureIndex]].empty())//if a texture unit belongs to this submesh
+        {
+            //set vertex colors from colorblock
+            //FIXME: Only the first color is used, no animation!! All animated effects should be applied through the scene node via a cm2mesh::setAnimatedEfectsForCurrentKeyframe function 
+            s16 vColIndex = M2MSkins[v].M2MTextureUnit[j].colorIndex;
+            if(vColIndex != -1)
+            {
+                DEBUG(logdebug("Applying color %f %f %f %f",M2MVertexColor[vColIndex].Colors.values[0],M2MVertexColor[vColIndex].Colors.values[1],M2MVertexColor[vColIndex].Colors.values[2],M2MVertexColor[vColIndex].Alpha.values[0]));
+                video::SColor color = video::SColorf(M2MVertexColor[vColIndex].Colors.values[0],M2MVertexColor[vColIndex].Colors.values[1],M2MVertexColor[vColIndex].Colors.values[2],M2MVertexColor[vColIndex].Alpha.values[0]).toSColor();
+//                 Device->getSceneManager()->getMeshManipulator()->apply(scene::SVertexColorSetManipulator(color), MeshBuffer);//
+            //MeshBuffer->getMaterial().DiffuseColor = color; // if we want to set diffuse instead of vertex color
+            }
+            // get and set texture
+            char buf[1000];
+            MemoryDataHolder::MakeTextureFilename(buf,M2MTextureFiles[M2MTextureLookup[M2MSkins[v].M2MTextureUnit[j].textureIndex]].c_str());
+
+            video::ITexture* tex = Device->getVideoDriver()->findTexture(buf);
+            if(!tex)
+            {
+              io::IReadFile* TexFile = io::IrrCreateIReadFileBasic(Device, buf);
+              if (!TexFile)
+              {
+                  logerror("CM2MeshFileLoader: Texture file not found: %s", buf);
+                  continue;
+              }
+            tex = Device->getVideoDriver()->getTexture(TexFile);
+            TexFile->drop();
+            }
+            MeshBuffer->getMaterial().setTexture(M2MSkins[v].M2MTextureUnit[j].TextureUnitNumber,tex);  // set a condition here to handle animated textures if they are used irrlicht.sourceforge.net/docu/example008.html
+
+            DEBUG(logdebug("Render Flags: %u %u",M2MRenderFlags[M2MSkins[v].M2MTextureUnit[j].renderFlagsIndex].flags,M2MRenderFlags[M2MSkins[v].M2MTextureUnit[j].renderFlagsIndex].blending));
+            u16 renderflags = M2MRenderFlags[M2MSkins[v].M2MTextureUnit[j].renderFlagsIndex].flags;
+
+			/*
+			renderflags's enumeration from some forum also found in M2Template1.bt
+					RF_None = 0, 
+					RF_Unlit = 1, 
+					RF_Unfogged = 2,
+					RF_Unlit_Unfogged = 3,
+					RF_TwoSided = 4, 
+					RF_Unlit_Two_Sided = 5,
+					RF_Unfogged_TwoSided = 6,
+					RF_Unlit_Unfogged_TwoSided = 7,
+					RF_Billboard =8,
+					RF_Unlit_Billboard =9,
+					RF_Unfogged_Billboard =10,
+					RF_Unlit_Unfogged_Billboard =11,
+					RF_Billboard_TwoSided =12,
+					RF_Unlit_Billboard_TwoSided =13,
+					RF_Unfogged_Billboard_TwoSided =14,
+					RF_Unlit_Unfogged_Billboard_TwoSided =15,
+					RF_Not_ZBuffered = 16,   // 0x10
+					RF_Not_ZBuffered_Unlit =17,
+					RF_Not_ZBuffered_Unfogged  =18,
+					RF_Not_ZBuffered_Unlit_Unfogged =19,
+					RF_Not_ZBuffered_TwoSided =20,
+					RF_Not_ZBuffered_Unlit_Two_Sided =21,
+					RF_Not_ZBuffered_Unfogged_TwoSided =22,
+					RF_Not_ZBuffered_Unlit_Unfogged_TwoSided =23,
+					RF_Not_ZBuffered_Billboard =24,
+					RF_Not_ZBuffered_Unlit_Billboard =25,
+					RF_Not_ZBuffered_Unfogged_Billboard =26,
+					RF_Not_ZBuffered_Unlit_Unfogged_Billboard =27,
+					RF_Not_ZBuffered_Billboard_TwoSided =28,
+					RF_Not_ZBuffered_Unlit_Billboard_TwoSided =29,
+					RF_Not_ZBuffered_Unfogged_Billboard_TwoSided =30,
+					RF_Not_ZBuffered_Unlit_Unfogged_Billboard_TwoSided =31
+			*/
+			
+            MeshBuffer->getMaterial().Lighting=(renderflags & 0x01)?false:true;
+            MeshBuffer->getMaterial().FogEnable=(renderflags & 0x02)?false:true;
+            MeshBuffer->getMaterial().BackfaceCulling=(renderflags & 0x04)?false:true;
+			MeshBuffer->getMaterial().setFlag(video::EMF_ZWRITE_ENABLE, (renderflags & 0x10)?false:true);
+            //We have a problem here
+            //             MeshBuffer->getMaterial().ZBuffer=(renderflags & 0x10)?video::ECFN_LESS:video::ECFN_LESSEQUAL;
+
+            switch(M2MRenderFlags[M2MSkins[v].M2MTextureUnit[j].renderFlagsIndex].blending)
+            {
+              case 0:  //opaque
+                MeshBuffer->getMaterial().MaterialType=video::EMT_SOLID;
+                break;
+              case 1:  //alpha ref
+                MeshBuffer->getMaterial().MaterialType=video::EMT_TRANSPARENT_ALPHA_CHANNEL_REF;  // default REF = 127 maybe set a lower REF?
+                break;
+              case 2:  //alpha blend
+                MeshBuffer->getMaterial().MaterialType=video::EMT_ONETEXTURE_BLEND;
+				MeshBuffer->getMaterial().MaterialTypeParam = pack_texureBlendFunc(video::EBF_SRC_ALPHA, video::EBF_ONE_MINUS_SRC_ALPHA,  video::EMFN_MODULATE_1X, video::EAS_TEXTURE|video::EAS_VERTEX_COLOR);
+				break;
+              case 3:  //additive
+                MeshBuffer->getMaterial().MaterialType=video::EMT_ONETEXTURE_BLEND;
+                MeshBuffer->getMaterial().MaterialTypeParam = pack_texureBlendFunc(video::EBF_SRC_COLOR, video::EBF_DST_COLOR, video::EMFN_MODULATE_1X, video::EAS_TEXTURE|video::EAS_VERTEX_COLOR);
+				break;
+              case 4:  //additive alpha
+                MeshBuffer->getMaterial().MaterialType=video::EMT_ONETEXTURE_BLEND;
+				MeshBuffer->getMaterial().MaterialTypeParam = pack_texureBlendFunc(video::EBF_SRC_ALPHA, video::EBF_ONE, video::EMFN_MODULATE_1X, video::EAS_TEXTURE|video::EAS_VERTEX_COLOR);
+				break;
+              case 5:  //modulate blend
+                MeshBuffer->getMaterial().MaterialType=video::EMT_ONETEXTURE_BLEND;
+				MeshBuffer->getMaterial().MaterialTypeParam = pack_texureBlendFunc(video::EBF_ONE, video::EBF_SRC_COLOR, video::EMFN_MODULATE_1X, video::EAS_TEXTURE|video::EAS_VERTEX_COLOR);
+				break;
+              case 6:  //Lumirion: not sure exatly so I'm using modulate2x blend like wowmodelviewer or could use EMT_TRANSPARENT_ADD_COLOR
+                MeshBuffer->getMaterial().MaterialType=video::EMT_ONETEXTURE_BLEND;
+                MeshBuffer->getMaterial().MaterialTypeParam = pack_texureBlendFunc(video::EBF_DST_COLOR, video::EBF_SRC_COLOR, video::EMFN_MODULATE_2X, video::EAS_TEXTURE|video::EAS_VERTEX_COLOR);
+				break;
+            }
+        }
+
+    }
+
+    MeshBuffer->recalculateBoundingBox();
+    if(header.Animations.num==0 && header.GlobalSequences.num == 0)
+      MeshBuffer->setHardwareMappingHint(EHM_STATIC);
+    else
+      MeshBuffer->setHardwareMappingHint(EHM_STREAM);
+
+}
+
+
 bool CM2MeshFileLoader::load()
 {
   DEBUG(logdebug("Trying to open file %s",MeshFile->getFileName().c_str()));
@@ -525,18 +745,59 @@ bool CM2MeshFileLoader::load()
       MeshFile->read((u8*)&header+0x54,24);//nColors - nTransparency
       MeshFile->read((u8*)&header+0x74,sizeof(ModelHeader)-0x74);//nTexAnims - END
 
-      std::string SkinName = MeshFile->getFileName().c_str();
-      SkinName = SkinName.substr(0, SkinName.length()-3) + "00.skin"; // FIX ME if we need more skins
-      io::IReadFile* SkinFile = io::IrrCreateIReadFileBasic(Device, SkinName.c_str());
-      if (!SkinFile)
-      {
-          logerror("Error! Skin file not found: %s", SkinName.c_str());
-          return 0;
-      }
-      SkinFile->seek(4); // Header of Skin Files is always SKIN
-      SkinFile->read(&currentView,sizeof(ModelView));
-      ReadViewData(SkinFile);
-      SkinFile->drop();
+      //std::string SkinName = MeshFile->getFileName().c_str();
+      //SkinName = SkinName.substr(0, SkinName.length()-3) + "00.skin"; // FIX ME if we need more skins
+	
+	  // Load and read skins
+	  for (u16 n = 0; n < 100; n++)  // can't possibly more than 99 skins per mesh probably much less
+	  {
+			std::string SkinName = MeshFile->getFileName().c_str();
+			//SkinName = SkinName.substr(0, SkinName.length()-3) + "00.skin"; // FIX ME if we need more skins
+			SkinName = SkinName.substr(0, SkinName.length()-3);
+    
+			// make up a skin name
+			std::ostringstream ext;
+			ext<<SkinName;
+			if (n<10)
+			{
+				ext<< "0";
+				ext<< n;
+				ext<< ".skin";
+			}
+			if (n>9)
+			{
+				ext<< n;
+				ext<< ".skin";
+			}
+			SkinName = ext.str();
+    
+			// Try to load our made up name.  If it works keep guesing names till one fails to be a real filename.
+			io::IReadFile* SkinFile = io::IrrCreateIReadFileBasic(Device, SkinName.c_str()); // if it is there load it
+			//if (4 > SkinFile->getSize()) 
+			if (!SkinFile)
+			{
+				n=100; // if the curent pass's SkinName isn't a real filename stop making up skin names
+				logdetail("Please note that the generated file name '%s' is not a file in this directory.", SkinName.c_str());
+			}
+			/*if (!SkinFile)
+			{
+				logerror("Error! Skin file not found: %s", SkinName.c_str());
+				return 0;
+			}*/
+			else
+			{
+				//SkinFile->seek(4); // Header of Skin Files is always SKIN
+				std::string tag;
+				SkinFile->read(&tag, 4);
+				if ( strstr( tag.c_str(), "SKIN" ))
+				{
+					SkinFile->read(&currentView,sizeof(ModelView)); // overwrites previous currentview if any
+					ReadViewData(SkinFile);
+					SkinFile->drop();
+					logdetail("Read veiw data from %s .", SkinName.c_str());
+				}
+			}
+	  }
 
       break;
     }
@@ -558,33 +819,94 @@ bool CM2MeshFileLoader::load()
 // EVERYTHING IS READ
 ///////////////////////////
 
-///////////////////////////
-// Map Out The Correct Render Order of all Submeshes
-///////////////////////////
+//////////////////////////////////////////////////
+// Colect and store submesh data for all submeshes
+//////////////////////////////////////////////////
 
-// ToDo:: Handle all skins for the current mesh.  Add anouther array in cm2mesh.h named views and push_back each AnimatedMesh->BufferMap into it
+// ToDo:: Store all M2MTextureFiles in the CM2Mesh.  Copy all M2MSkins to AnimatedMesh.Skins. Store all Animated data in the CM2Mesh too
+for(u16 S = 0; S < M2MSkins.size(); S++)
+{
+	CM2Mesh::skin skin;
+	AnimatedMesh->Skins.push_back(skin); // add an empty skin
+	AnimatedMesh->Skins[S].ID = S ; // 00.skin will be Skins[0]
+	for(u16 s = 0; s < M2MSkins[S].M2MSubmeshes.size(); s++)
+	{
+		CM2Mesh::submesh Submesh;
+		AnimatedMesh->Skins[S].Submeshes.push_back(Submesh); // store a blank submesh
+		AnimatedMesh->Skins[S].Submeshes.getLast().MeshPart = M2MSkins[S].M2MSubmeshes[s].meshpartId;
+		// Might store parent bone for submesh then link submesh to bone
 
-// Populate a temporary array with submesh data to make a map of correct submesh order
+		// vertex range should be the same for all instances of a submesh regardless of current skin so 
+		// using it to name submeshes is a good way to prevent duplication while using multiple skins
+		std::ostringstream vertrange;
+		vertrange<< Device->getFileSystem()->getFileBasename(MeshFile->getFileName().c_str(), false).c_str();
+		vertrange<< M2MSkins[S].M2MSubmeshes[s].ofsVertex;
+		vertrange<< "_";
+		u16 endvertrange = M2MSkins[S].M2MSubmeshes[s].ofsVertex+M2MSkins[S].M2MSubmeshes[s].nVertex;
+		vertrange<< endvertrange;
+		std::string vertstring = vertrange.str();
+		AnimatedMesh->Skins[S].Submeshes.getLast().UniqueName = vertstring.c_str(); // save the submesh name
+		// later when activating skins check if a mesh exists by this name and reuse it updating its data to match current skin
+				
+		// get all texture data for this submesh
+		for (u16 t = 0; t < M2MSkins[S].M2MTextureUnit.size(); t++)
+		{
+			if (M2MSkins[S].M2MTextureUnit[t].submeshIndex1 == s) // Big S = current skin index little s= current submesh index
+			{
+				scene::CM2Mesh::texture Texture;
+				Texture.TextureNumber = M2MSkins[S].M2MTextureUnit[t].TextureUnitNumber;
+				Texture.Path = M2MTextureLookup[M2MSkins[S].M2MTextureUnit[t].textureIndex]; 
+				u8 animatedFlag = M2MSkins[0].M2MTextureUnit[t].Flags & 0xFF;   // get first 8bits this flag sets texture animation
+				if (animatedFlag == 0){
+					Texture.animated = true;}
+				else{
+					Texture.animated = false;}
+				Texture.RenderFlag = M2MRenderFlags[M2MSkins[S].M2MTextureUnit[t].renderFlagsIndex].flags;
+				Texture.BlendFlag = M2MRenderFlags[M2MSkins[S].M2MTextureUnit[t].renderFlagsIndex].blending;
+				Texture.VertexColor = M2MSkins[S].M2MTextureUnit[t].colorIndex;
+				Texture.transparency = M2MSkins[S].M2MTextureUnit[t].transparencyIndex;
+				Texture.uvanimation = M2MSkins[S].M2MTextureUnit[t].texAnimIndex;
+						
+				AnimatedMesh->Skins[S].Submeshes.getLast().Textures.push_back(Texture);
+			}
+		}
+	}
+}
+// set default skin for the mesh
+AnimatedMesh->SkinID = 0;
+// Copy global data lists to the mesh
+for (u16 t = 0; t <M2MTextureFiles.size(); t++)
+{
+	AnimatedMesh->Textures.push_back(M2MTextureFiles[t].c_str());
+}
+//ToDo:: colors lights cams other animation etc
+
+
+/////////////////////////////////////////////////
+//     submesh maping to reorder submeshes     //
+/////////////////////////////////////////////////
+    // only using first skin here as this section will be depreciated when CM2Mesh stores it's own skins
 	scene::CM2Mesh::BufferInfo meshmap;
 	irr::core::array<scene::CM2Mesh::BufferInfo> SubmeshMap;
-	for (u16 s = 0; s < M2MSubmeshes.size(); s++)           // Loop through the submeshes
+	u32 range = M2MSkins[0].M2MSubmeshes.size();
+	for (u16 s = 0; s < range; s++)           // Loop through the submeshes
 	{
 		u16 t;
-		for (u16 T = 0; T < M2MTextureUnit.size(); T++){     // Find the first textureunit that applies to submesh S
-			if (M2MTextureUnit[T].submeshIndex1 == s){
+		for (u16 T = 0; T < M2MSkins[0].M2MTextureUnit.size(); T++){     // Find the first textureunit that applies to submesh S
+			if (M2MSkins[0].M2MTextureUnit[T].submeshIndex1 == s){
 				t=T;
-				T=M2MTextureUnit.size(); // End the loop since we found a texture
+				T=M2MSkins[0].M2MTextureUnit.size(); // End the loop since we found a texture
 			}
 		}
 		meshmap.ID = s;                                     // This SubMesh's index
-		meshmap.Mode = M2MTextureUnit[t].Mode;              // This is mode.
-		u8 animatedFlag = M2MTextureUnit[t].Flags & 0xFF;   // get first 8bits this flag sets texture animation
-		u8 renderFlag = M2MTextureUnit[t].Flags >> 8;       // get the second 8bits this flag sets some sort of submesh grouping
-		meshmap.order = M2MTextureUnit[t].renderOrder;      // Indicates how this effect should be applyed for instance 2 is an overlay
+		meshmap.Mode = M2MSkins[0].M2MTextureUnit[t].Mode;              // This is mode.
+		u8 animatedFlag = M2MSkins[0].M2MTextureUnit[t].Flags & 0xFF;   // get first 8bits this flag sets texture animation
+		u8 renderFlag = M2MSkins[0].M2MTextureUnit[t].Flags >> 8;       // get the second 8bits this flag sets some sort of submesh grouping
+		meshmap.order = M2MSkins[0].M2MTextureUnit[t].renderOrder;      // Indicates how this effect should be applyed for instance 2 is an overlay
 		meshmap.block = renderFlag;
-		meshmap.Coordinates = fixCoordSystem(M2MSubmeshes[meshmap.ID].CenterOfMass);// fix the coordinates since Y is depth in ModelViewSubmesh vectors but we use Z depth 
-		meshmap.flag = M2MRenderFlags[M2MTextureUnit[t].renderFlagsIndex].flags;
-		meshmap.blend = M2MRenderFlags[M2MTextureUnit[t].renderFlagsIndex].blending;
+		meshmap.Coordinates = fixCoordSystem(M2MSkins[0].M2MSubmeshes[meshmap.ID].CenterOfMass);// fix the coordinates since Y is depth in ModelViewSubmesh vectors but we use Z depth 
+		meshmap.flag = M2MRenderFlags[M2MSkins[0].M2MTextureUnit[t].renderFlagsIndex].flags;
+		meshmap.blend = M2MRenderFlags[M2MSkins[0].M2MTextureUnit[t].renderFlagsIndex].blending;
 		if (meshmap.blend > 1)
 			meshmap.solid = false;
 		else
@@ -594,11 +916,20 @@ bool CM2MeshFileLoader::load()
 		else
 			meshmap.animatedtexture = false;
 		// trying to understand what this flag is
-		meshmap.unknown = M2MSubmeshes[meshmap.ID].unk3;
-		meshmap.Radius = M2MSubmeshes[meshmap.ID].Radius;
-		float B = M2MVertices[M2MSubmeshes[meshmap.ID].ofsVertex].pos.Z; 
+		meshmap.unknown = M2MSkins[0].M2MSubmeshes[meshmap.ID].unk3;
+		std::string tex = Device->getFileSystem()->getFileBasename(M2MTextureFiles[M2MTextureLookup[M2MSkins[0].M2MTextureUnit[t].textureIndex]].c_str(), true).c_str();
+		meshmap.Radius = M2MSkins[0].M2MSubmeshes[meshmap.ID].Radius;
+
+		logdetail("For Submesh %u unk3 %u and unk4 %u texture %s.", meshmap.ID, meshmap.unknown, M2MSkins[0].M2MSubmeshes[meshmap.ID].unk4, tex);
+		logdetail("  mode %u block %u Order %u", meshmap.Mode, meshmap.block, meshmap.order);
+		std::ostringstream rad;
+		rad<< meshmap.Radius;
+		std::string Radius = rad.str();
+		logdetail("    Radius = %s", Radius.c_str());
+
+		float B = M2MVertices[M2MSkins[0].M2MSubmeshes[meshmap.ID].ofsVertex].pos.Z; 
 		float F = B;
-		for (int j = M2MSubmeshes[meshmap.ID].ofsVertex; j < M2MSubmeshes[meshmap.ID].ofsVertex + M2MSubmeshes[meshmap.ID].nVertex; j++)
+		for (int j = M2MSkins[0].M2MSubmeshes[meshmap.ID].ofsVertex; j < M2MSkins[0].M2MSubmeshes[meshmap.ID].ofsVertex + M2MSkins[0].M2MSubmeshes[meshmap.ID].nVertex; j++)
 		{ 
 			if (M2MVertices[j].pos.Z > B)  // find the farthest(largest) depth value in the submesh
 			{
@@ -615,7 +946,7 @@ bool CM2MeshFileLoader::load()
 		// Get X edges
 		meshmap.Xpos = meshmap.Coordinates.X;
 		meshmap.Xneg = meshmap.Coordinates.X;
-		for (int j = M2MSubmeshes[meshmap.ID].ofsVertex; j < M2MSubmeshes[meshmap.ID].ofsVertex + M2MSubmeshes[meshmap.ID].nVertex; j++)
+		for (int j = M2MSkins[0].M2MSubmeshes[meshmap.ID].ofsVertex; j < M2MSkins[0].M2MSubmeshes[meshmap.ID].ofsVertex + M2MSkins[0].M2MSubmeshes[meshmap.ID].nVertex; j++)
 		{
 			if (M2MVertices[j].pos.X < meshmap.Xneg)
 			{
@@ -629,7 +960,7 @@ bool CM2MeshFileLoader::load()
 		// Get Y edges
 		meshmap.Ypos = meshmap.Coordinates.Y;
 		meshmap.Yneg = meshmap.Coordinates.Y;
-		for (int j = M2MSubmeshes[meshmap.ID].ofsVertex; j < M2MSubmeshes[meshmap.ID].ofsVertex + M2MSubmeshes[meshmap.ID].nVertex; j++)
+		for (int j = M2MSkins[0].M2MSubmeshes[meshmap.ID].ofsVertex; j < M2MSkins[0].M2MSubmeshes[meshmap.ID].ofsVertex + M2MSkins[0].M2MSubmeshes[meshmap.ID].nVertex; j++)
 		{
 			if (M2MVertices[j].pos.Y < meshmap.Yneg)
 			{
@@ -664,7 +995,7 @@ bool CM2MeshFileLoader::load()
 		// Put the Populated Element into the Array
 		SubmeshMap.push_back(meshmap);
 	}
-	/*// copy elements to BufferMap
+	// copy elements to BufferMap
 	// Backdrop
 	core::array<scene::CM2Mesh::BufferInfo> Scene;
 	core::array<scene::CM2Mesh::BufferInfo> Overlays;
@@ -730,177 +1061,20 @@ bool CM2MeshFileLoader::load()
 	Scene.erase(0,Scene.size());
 	
 	// Now insert overlays
-	InsertOverlays(Overlays,AnimatedMesh->BufferMap);*/
+	InsertOverlays(Overlays,AnimatedMesh->BufferMap);
 
-	///////
-	// Dimensional Partitioning
-	///////
-	// Might need to do this only for meshes big enough to be a scene
-
-	// Array for z dimension zones
-	irr::core::array<ZZone> ZZones;
-	u16 zonesize = 10; // this may need to be 5 not shure
-	u16 MeshRadius;
-	// Set mesh radius  
-	float remainder = fmod(header.BoundingRadius , zonesize);  // It must be evenly divisible by zonesize
-	if (remainder > 0){   // So fix it if nessasary
-		MeshRadius = header.BoundingRadius + (zonesize - remainder);
-	}
-	else {
-		MeshRadius = header.BoundingRadius;
-	}
-	// Loop from far edge of the mesh spliting it into ZZones
-	ZZone ZTemp; 
-	for (u16 Z = 0+MeshRadius; Z > 0-MeshRadius; Z-= zonesize){
-		// In the current ZZone loop through YZones
-		YZone YTemp;
-		for (u16 Y = 0+MeshRadius; Y > 0-MeshRadius; Y-= zonesize){
-			// In the current YZone loop through XZones
-			for (u16 X = 0-MeshRadius; X < 0+MeshRadius; X+= zonesize){
-				XZone XTemp;
-				// Define the search zone
-				ZTemp.ZBack = Z;
-				ZTemp.ZFront = Z-zonesize;
-				YTemp.YTop = Y;
-				YTemp.YBottom = Y-zonesize;
-				XTemp.XLeft = X;
-				XTemp.XRight = X+zonesize;
-				// Set the distance of the YZone from the cmera's y coord
-				float YAverage = (YTemp.YTop - YTemp.YBottom)/2;
-				if (YAverage > 2.44f){
-					YTemp.YDist = YAverage - 2.44f;
-				}
-				else{
-					YTemp.YDist = 2.44f - YAverage;
-				}
-				// loop through submeshes if any are in our current x-y-z zones push them into XZone.SubMeshes
-				for (u16 S = 0; S < SubmeshMap.size();){
-					if (SubmeshMap[S].Coordinates.Z < ZTemp.ZBack && SubmeshMap[S].Coordinates.Z > ZTemp.ZFront && SubmeshMap[S].Coordinates.Y < YTemp.YTop && SubmeshMap[S].Coordinates.Y > YTemp.YBottom && SubmeshMap[S].Coordinates.X > XTemp.XLeft && SubmeshMap[S].Coordinates.X < XTemp.XRight){
-						// Copy submeshes that belong in this zone to XTemp
-						XTemp.submeshes.push_back(SubmeshMap[S]);
-						// Delete the copied submesh from the submesh array
-						SubmeshMap.erase(S);
-					}
-					// correct S so it points to the next object
-					else{
-						S++;
-					}
-				}
-				// If this zone has submeshes sort them by centermass.x and store XTemp in Ytemp
-				if (XTemp.submeshes.size() > 0){
-					sortX(XTemp.submeshes);
-					YTemp.XZones.push_back(XTemp);
-				}
-			}
-			// If we have stored any XZones we need to store YTemp
-			if (YTemp.XZones.size() > 0){
-				ZTemp.YZones.push_back(YTemp); // There was no need to sort XZones since they are created in left to right order
-			}
-		}
-		// If we stored YZones we need to store the ZZone
-		if (ZTemp.YZones.size() > 0){
-			// Sort these YZones by largest YDist to the smallest
-			sortY(ZTemp.YZones);
-			ZZones.push_back(ZTemp);
-		}
-	}
-	// Now we have a dimensionaly partitioned scene and all submeshes should be in order
-		
-	// Next loop through zZones and copy submeshes data elements to the cm2mesh
-	for (u16 Z = 0; Z < ZZones.size(); Z++){
-		// lopping through yZones
-		for (u16 Y = 0; Y < ZZones[Z].YZones.size(); Y++){
-			// looping through xZones
-			for (u16 X = 0; X < ZZones[Z].YZones[Y].XZones.size(); X++){
-				// looping through submeshes pushing them into the cm2mesh
-				for (u16 S = 0; S < ZZones[Z].YZones[Y].XZones[X].submeshes.size(); S++){
-					AnimatedMesh->BufferMap.push_back(ZZones[Z].YZones[Y].XZones[X].submeshes[S]);
-				}
-			}
-		}
-	}
 	
-	/*// Clear Temps
+	// Clear Temps
 	Overlays.clear();
-	Scene.clear();*/
-	ZZones.clear();
+	Scene.clear();
 	SubmeshMap.clear();
 
 
 ///////////////////////////////////////
-//      Animation related stuff      //
+//           Fix Geometry            //
 ///////////////////////////////////////
-for(u32 i=0;i<M2MAnimations.size();i++)
-{
-  AnimatedMesh->newAnimation(M2MAnimations[i].animationID,M2MAnimations[i].start,M2MAnimations[i].end,M2MAnimations[i].probability);
-}
 
-
-scene::CM2Mesh::SJoint* Joint;
-for(u32 i=0;i<M2MBones.size();i++)
-{
-  if(M2MBones[i].parentBone == -1)
-  {
-      ParentJoint=(scene::CM2Mesh::SJoint*)0;
-  }
-  else
-  {
-      ParentJoint=AnimatedMesh->getAllJoints()[M2MBones[i].parentBone];
-  }
-  Joint=AnimatedMesh->addJoint(ParentJoint);
-
-  if(M2MBones[i].translation.timestamps.size()>0)
-  {
-    for(u32 j=0;j<M2MBones[i].translation.timestamps.size();j++)
-    {
-      scene::CM2Mesh::SPositionKey* pos=AnimatedMesh->addPositionKey(Joint);
-      pos->frame=M2MBones[i].translation.timestamps[j];
-      pos->position=fixCoordSystem(core::vector3df(M2MBones[i].translation.values[j*3],M2MBones[i].translation.values[j*3+1],M2MBones[i].translation.values[j*3+2]));
-    }
-  }
-  if(M2MBones[i].rotation.timestamps.size()>0)
-  {
-    for(u32 j=0;j<M2MBones[i].rotation.timestamps.size();j++)
-    {
-      scene::CM2Mesh::SRotationKey* rot=AnimatedMesh->addRotationKey(Joint);
-      rot->frame=M2MBones[i].rotation.timestamps[j];
-      core::quaternion tempQ=core::quaternion(M2MBones[i].rotation.values[j*4+0],M2MBones[i].rotation.values[j*4+1],M2MBones[i].rotation.values[j*4+2],M2MBones[i].rotation.values[j*4+3]);
-      tempQ = fixQuaternion(tempQ);
-      tempQ.normalize();
-      rot->rotation=tempQ;
-    }
-  }
-
-  if(M2MBones[i].scaling.timestamps.size()>0)
-  {
-    for(u32 j=0;j<M2MBones[i].scaling.timestamps.size();j++)
-    {
-      scene::CM2Mesh::SScaleKey* scale=AnimatedMesh->addScaleKey(Joint);
-      scale->frame=M2MBones[i].scaling.timestamps[j];
-      scale->scale=core::vector3df(M2MBones[i].scaling.values[j*3],M2MBones[i].scaling.values[j*3+1],M2MBones[i].scaling.values[j*3+2]);
-    }
-  }
-
-  Joint->Animatedposition=M2MBones[i].PivotPoint;
-  Joint->Animatedscale=core::vector3df(1.0f,1.0f,1.0f);
-  Joint->Animatedrotation=core::quaternion(0.0f,0.0f,0.0f,1.0f);
-
-  core::matrix4 positionMatrix;
-  positionMatrix.setTranslation( Joint->Animatedposition );
-
-  core::matrix4 rotationMatrix = Joint->Animatedrotation.getMatrix();
-
-  core::matrix4 scaleMatrix;
-  scaleMatrix.setScale( Joint->Animatedscale );
-
-  Joint->GlobalMatrix = positionMatrix * rotationMatrix * scaleMatrix;
-}
-
-
-
-
-
-//And M2MVertices are not usable like this. Thus we put it into an irrlicht S3DVertex
+//M2MVertices are not usable like this. Thus we put it into an irrlicht S3DVertex
 
 if(M2Vertices.size()>0)
     M2Vertices.clear();
@@ -909,160 +1083,62 @@ for(u32 i=0;i<M2MVertices.size();i++)
 {
     M2Vertices.push_back(video::S3DVertex(core::vector3df(M2MVertices[i].pos.X,M2MVertices[i].pos.Y,M2MVertices[i].pos.Z),core::vector3df(M2MVertices[i].normal.X,M2MVertices[i].normal.Y,M2MVertices[i].normal.Z), video::SColor(255,100,100,100),M2MVertices[i].texcoords));
 }
-//Loop through the submeshes  // ToDo:: keep track of triangle offsets an number so we don't duplicate submeshes that exist in multiple views/.skins and store a simplified texture list in the cm2mesh so we can swap textures by currentview flag
-for(u32 I=0; I < currentView.Submesh.num;I++)// changed i to I so i can redirect this loop into the buffermap builing the mesh in my corrected order. If I make our CAnimatedMeshSceneNode render from the buffermap this will not be nessasary 
+
+
+///////////////////////////////////////
+//      Animation related stuff      //
+///////////////////////////////////////
+	
+
+CopyAnimationsToMesh(AnimatedMesh);
+
+
+///////////////////////////////////////
+//           Mesh Assembly           //
+///////////////////////////////////////
+
+//Loop through the submeshes  // ToDo:: keep track of triangle offsets and number so we don't duplicate submeshes that exist in multiple views/.skins and store a simplified texture list in the cm2mesh so we can swap textures by currentview flag
+std::string prefix = "UI_";
+std::string MeshFileName = Device->getFileSystem()->getFileBasename(MeshFile->getFileName().c_str(), false).c_str();
+
+if (std::mismatch(prefix.begin(), prefix.end(), MeshFileName.begin()).first == prefix.end()) // If MeshFileName begins with UI_
+//if ( strstr( MeshFileName.c_str(), "UI_" )) // if MeshFileName contains UI_
 {
-    u32 i = AnimatedMesh->BufferMap[I].ID; // also part of the redirect.
-    //Now, M2MTriangles refers to M2MIndices and not to M2MVertices.
-    scene::SSkinMeshBuffer *MeshBuffer = AnimatedMesh->addMeshBuffer(M2MSubmeshes[i].meshpartId);
+	u32 v = 0; // currently I am limiting skin usage to skin 0
+	for (u32 i = 0; i < M2MSkins[v].M2MSubmeshes.size(); i++)
+	{
+		// will need to see if a mesh with this UniqueName is already loaded to avoid multiple copies
+		CM2Mesh *CurrentChildMesh = new scene::CM2Mesh(); // make a blank mesh
+		CopyAnimationsToMesh(CurrentChildMesh);
+		BuildANewSubMesh(CurrentChildMesh, v, i); // assemble childmesh
+		Device->getSceneManager()->getMeshManipulator()->flipSurfaces(CurrentChildMesh);
+		
+		// vertex range should be the same for all instances of a submesh regardless of current skin so 
+		// using it to name submeshes is a good way to prevent duplication while using multiple skins
+		// rename it with a unique name.  UniqueName has already ben generated and stored in the CM2Mesh instance
+		std::string NewName = AnimatedMesh->Skins[v].Submeshes[i].UniqueName.c_str();
 
-    //Put the Indices and Vertices of the Submesh into a mesh buffer
-    //Each Submesh contains only the Indices and Vertices that belong to it.
-    //Because of this the Index values for the Submeshes must be corrected by the Vertex offset of the Submesh
-    for(u32 j=M2MSubmeshes[i].ofsTris;j<M2MSubmeshes[i].ofsTris+M2MSubmeshes[i].nTris;j++)
-    {
-        MeshBuffer->Indices.push_back(M2MIndices[M2MTriangles[j]]-M2MSubmeshes[i].ofsVertex);
-        if(M2MIndices[M2MTriangles[j]]<M2MSubmeshes[i].ofsVertex)
-          logerror("Index %u < ofsVertex %u",M2MIndices[M2MTriangles[j]],M2MSubmeshes[i].ofsVertex);
-    }
-
-    for(u32 j=M2MSubmeshes[i].ofsVertex;j<M2MSubmeshes[i].ofsVertex+M2MSubmeshes[i].nVertex;j++)
-    {
-        MeshBuffer->Vertices_Standard.push_back(M2Vertices[j]);
-        for(u32 k=0; k<4; k++)
-        {
-            if((M2MVertices[j].weights[k])>0)
-            {
-            u32 boneIndex = M2MVertices[j].bones[k];
-            scene::CM2Mesh::SWeight* weight = AnimatedMesh->addWeight(AnimatedMesh->getAllJoints()[boneIndex]);
-            weight->strength=M2MVertices[j].weights[k];
-            weight->vertex_id=MeshBuffer->Vertices_Standard.size()-1;
-            weight->buffer_id=I; // I insted of i for redirect
-            }
-
-        }
-    }
-
-    MeshBuffer->recalculateBoundingBox();
-    for(u32 j=0;j<M2MTextureUnit.size();j++)//Loop through texture units
-    {
-        if(M2MTextureUnit[j].submeshIndex1==i && !M2MTextureFiles[M2MTextureLookup[M2MTextureUnit[j].textureIndex]].empty())//if a texture unit belongs to this submesh
-        {
-            //set vertex colors from colorblock
-            //FIXME: Only the first color is used, no animation!!
-            s16 vColIndex = M2MTextureUnit[j].colorIndex;
-            if(vColIndex != -1)
-            {
-                DEBUG(logdebug("Applying color %f %f %f %f",M2MVertexColor[vColIndex].Colors.values[0],M2MVertexColor[vColIndex].Colors.values[1],M2MVertexColor[vColIndex].Colors.values[2],M2MVertexColor[vColIndex].Alpha.values[0]));
-                video::SColor color = video::SColorf(M2MVertexColor[vColIndex].Colors.values[0],M2MVertexColor[vColIndex].Colors.values[1],M2MVertexColor[vColIndex].Colors.values[2],M2MVertexColor[vColIndex].Alpha.values[0]).toSColor();
-//                 Device->getSceneManager()->getMeshManipulator()->apply(scene::SVertexColorSetManipulator(color), MeshBuffer);//
-            //MeshBuffer->getMaterial().DiffuseColor = color; // if we want to set diffuse instead of vertex color
-            }
-            // get and set texture
-            char buf[1000];
-            MemoryDataHolder::MakeTextureFilename(buf,M2MTextureFiles[M2MTextureLookup[M2MTextureUnit[j].textureIndex]].c_str());
-
-            video::ITexture* tex = Device->getVideoDriver()->findTexture(buf);
-            if(!tex)
-            {
-              io::IReadFile* TexFile = io::IrrCreateIReadFileBasic(Device, buf);
-              if (!TexFile)
-              {
-                  logerror("CM2MeshFileLoader: Texture file not found: %s", buf);
-                  continue;
-              }
-            tex = Device->getVideoDriver()->getTexture(TexFile);
-            TexFile->drop();
-            }
-            MeshBuffer->getMaterial().setTexture(M2MTextureUnit[j].TextureUnitNumber,tex);  // set a condition here to handle animated textures if they are used irrlicht.sourceforge.net/docu/example008.html
-
-            DEBUG(logdebug("Render Flags: %u %u",M2MRenderFlags[M2MTextureUnit[j].renderFlagsIndex].flags,M2MRenderFlags[M2MTextureUnit[j].renderFlagsIndex].blending));
-            u16 renderflags = M2MRenderFlags[M2MTextureUnit[j].renderFlagsIndex].flags;
-
-			/*
-			renderflags's enumeration from some forum
-					RF_None = 0, 
-					RF_Unlit = 1, 
-					RF_Unfogged = 2,
-					RF_Unlit_Unfogged = 3,
-					RF_TwoSided = 4, 
-					RF_Unlit_Two_Sided = 5,
-					RF_Unfogged_TwoSided = 6,
-					RF_Unlit_Unfogged_TwoSided = 7,
-					RF_Billboard =8,
-					RF_Unlit_Billboard =9,
-					RF_Unfogged_Billboard =10,
-					RF_Unlit_Unfogged_Billboard =11,
-					RF_Billboard_TwoSided =12,
-					RF_Unlit_Billboard_TwoSided =13,
-					RF_Unfogged_Billboard_TwoSided =14,
-					RF_Unlit_Unfogged_Billboard_TwoSided =15,
-					RF_Not_ZBuffered = 16,   // 0x10
-					RF_Not_ZBuffered_Unlit =17,
-					RF_Not_ZBuffered_Unfogged  =18,
-					RF_Not_ZBuffered_Unlit_Unfogged =19,
-					RF_Not_ZBuffered_TwoSided =20,
-					RF_Not_ZBuffered_Unlit_Two_Sided =21,
-					RF_Not_ZBuffered_Unfogged_TwoSided =22,
-					RF_Not_ZBuffered_Unlit_Unfogged_TwoSided =23,
-					RF_Not_ZBuffered_Billboard =24,
-					RF_Not_ZBuffered_Unlit_Billboard =25,
-					RF_Not_ZBuffered_Unfogged_Billboard =26,
-					RF_Not_ZBuffered_Unlit_Unfogged_Billboard =27,
-					RF_Not_ZBuffered_Billboard_TwoSided =28,
-					RF_Not_ZBuffered_Unlit_Billboard_TwoSided =29,
-					RF_Not_ZBuffered_Unfogged_Billboard_TwoSided =30,
-					RF_Not_ZBuffered_Unlit_Unfogged_Billboard_TwoSided =31
-			*/
-			
-            MeshBuffer->getMaterial().Lighting=(renderflags & 0x01)?false:true;
-            MeshBuffer->getMaterial().FogEnable=(renderflags & 0x02)?false:true;
-            MeshBuffer->getMaterial().BackfaceCulling=(renderflags & 0x04)?false:true;
-			MeshBuffer->getMaterial().setFlag(video::EMF_ZWRITE_ENABLE, (renderflags & 0x10)?false:true);
-            //We have a problem here
-            //             MeshBuffer->getMaterial().ZBuffer=(renderflags & 0x10)?video::ECFN_LESS:video::ECFN_LESSEQUAL;
-
-            switch(M2MRenderFlags[M2MTextureUnit[j].renderFlagsIndex].blending)
-            {
-              case 0:  //opaque
-                MeshBuffer->getMaterial().MaterialType=video::EMT_SOLID;
-                break;
-              case 1:  //alpha ref
-                MeshBuffer->getMaterial().MaterialType=video::EMT_TRANSPARENT_ALPHA_CHANNEL_REF;  // default REF = 127 maybe set a lower REF?
-                break;
-              case 2:  //alpha blend
-                MeshBuffer->getMaterial().MaterialType=video::EMT_ONETEXTURE_BLEND;
-				MeshBuffer->getMaterial().MaterialTypeParam = pack_texureBlendFunc(video::EBF_SRC_ALPHA, video::EBF_ONE_MINUS_SRC_ALPHA,  video::EMFN_MODULATE_1X, video::EAS_TEXTURE|video::EAS_VERTEX_COLOR);
-				break;
-              case 3:  //additive
-                MeshBuffer->getMaterial().MaterialType=video::EMT_ONETEXTURE_BLEND;
-                MeshBuffer->getMaterial().MaterialTypeParam = pack_texureBlendFunc(video::EBF_SRC_COLOR, video::EBF_DST_COLOR, video::EMFN_MODULATE_1X, video::EAS_TEXTURE|video::EAS_VERTEX_COLOR);
-				break;
-              case 4:  //additive alpha
-                MeshBuffer->getMaterial().MaterialType=video::EMT_ONETEXTURE_BLEND;
-				MeshBuffer->getMaterial().MaterialTypeParam = pack_texureBlendFunc(video::EBF_SRC_ALPHA, video::EBF_ONE, video::EMFN_MODULATE_1X, video::EAS_TEXTURE|video::EAS_VERTEX_COLOR);
-				break;
-              case 5:  //modulate blend
-                MeshBuffer->getMaterial().MaterialType=video::EMT_ONETEXTURE_BLEND;
-				MeshBuffer->getMaterial().MaterialTypeParam = pack_texureBlendFunc(video::EBF_ONE, video::EBF_SRC_COLOR, video::EMFN_MODULATE_1X, video::EAS_TEXTURE|video::EAS_VERTEX_COLOR);
-				break;
-              case 6:  //Lumirion: not sure exatly so I'm using modulate2x blend like wowmodelviewer or could use EMT_TRANSPARENT_ADD_COLOR
-                MeshBuffer->getMaterial().MaterialType=video::EMT_ONETEXTURE_BLEND;
-                MeshBuffer->getMaterial().MaterialTypeParam = pack_texureBlendFunc(video::EBF_DST_COLOR, video::EBF_SRC_COLOR, video::EMFN_MODULATE_2X, video::EAS_TEXTURE|video::EAS_VERTEX_COLOR);
-				break;
-            }
-        }
-
-    }
-
-    MeshBuffer->recalculateBoundingBox();
-    if(header.Animations.num==0 && header.GlobalSequences.num == 0)
-      MeshBuffer->setHardwareMappingHint(EHM_STATIC);
-    else
-      MeshBuffer->setHardwareMappingHint(EHM_STREAM);
-
+		Device->getSceneManager()->getMeshCache()->renameMesh(CurrentChildMesh, NewName.c_str()); // give the current child mesh a uniqe name
+		CurrentChildMesh->finalize(); // do this after this submesh is fully generated
+		// Do I need to add this mesh to meshcache?
+		Device->getSceneManager()->getMeshCache()->addMesh(NewName.c_str(), CurrentChildMesh);
+	}
 }
-Device->getSceneManager()->getMeshManipulator()->flipSurfaces(AnimatedMesh);
+else
+{
+	u32 v = 0;
+	for (u32 i = 0; i < M2MSkins[v].M2MSubmeshes.size(); i++)
+	{
+		BuildANewSubMesh(AnimatedMesh, v, i);
+	}
+	Device->getSceneManager()->getMeshManipulator()->flipSurfaces(AnimatedMesh);
+}
+
+
+///////////////////////////////////////
+//             Clean Up              //
+///////////////////////////////////////
+
 
 for(u32 i=0; i< M2MAnimfiles.size();i++)
 {

@@ -215,29 +215,14 @@ struct Light{
 };
 
 
-// X-dimensional structure
-struct XZone{
-	float XLeft;
-	float XRight;
-	irr::core::array<scene::CM2Mesh::BufferInfo> submeshes;  // Submeshes in this zone
+// Structure to contain all arrays from a .skin file
+struct SkinData{
+	core::array<u16> M2MIndices;
+	core::array<u16> M2MTriangles;
+	core::array<ModelViewSubmesh> M2MSubmeshes;
+	core::array<TextureUnit> M2MTextureUnit;
 };
 
-
-// Y-dimensional structure
-struct YZone{
-	float YTop;
-	float YBottom;
-	float YDist; // set to the diference of camera.Y and YAverage 
-	irr::core::array<XZone> XZones; // XZones in this Y zone
-};
-
-
-// Z-dimensional structure
-struct ZZone{
-	float ZFront;
-	float ZBack;
-	irr::core::array<YZone> YZones; // YZones in this Z zone
-};
 
 class CM2MeshFileLoader : public IMeshLoader
 {
@@ -269,6 +254,8 @@ private:
     void ReadAnimationData();
     void ReadViewData(io::IReadFile* file);
     void ReadABlock(AnimBlock &ABlock, u8 datatype, u8 datanum);
+	void CopyAnimationsToMesh(CM2Mesh * CurrentMesh);
+	void BuildANewSubMesh(CM2Mesh * CurrentMesh, u32 v, u32 i); // v is index to current veiw and i is the index for the current submesh in this view 
 
 	IrrlichtDevice *Device;
     core::stringc Texdir;
@@ -296,6 +283,7 @@ private:
     core::array<std::string> M2MTextureFiles;
     core::array<TextureUnit> M2MTextureUnit;
     core::array<RenderFlags> M2MRenderFlags;
+	core::array<SkinData> M2MSkins; // each element is a view or skin and contains all arrays from a .skin file
     core::array<u32> M2MGlobalSequences;
     core::array<Animation> M2MAnimations;
     core::array<io::IReadFile*> M2MAnimfiles;//Stores pointers to *.anim files in WOTLK
@@ -309,43 +297,6 @@ private:
     core::array<u16> M2Indices;
     core::array<scene::ISkinnedMesh::SJoint> M2Joints;
 
-	void sortY (core::array<YZone> &Array)
-	{
-		  YZone temp;
-
-		  for(int i = 0; i < Array.size( ) - 1; i++)
-		  {
-			   for (int j = i + 1; j < Array.size( ); j++)
-			   {
-				   if (Array[ i ].YDist < Array[ j ].YDist) // The highest YDist value is farthest from camera
-				   {
-					   temp = Array[ i ];    //swapping entire element
-					   Array[ i ] = Array[ j ];
-					   Array[ j ] = temp;
-				   }
-			   }
-		  }
-		  return;
-	}
-
-	void sortX (core::array<scene::CM2Mesh::BufferInfo> &SubmeshList)
-	{
-		  scene::CM2Mesh::BufferInfo temp;
-
-		  for(int i = 0; i < SubmeshList.size( ) - 1; i++)
-		  {
-			   for (int j = i + 1; j < SubmeshList.size( ); j++)
-			   {
-				   if (SubmeshList[ i ].Coordinates.X > SubmeshList[ j ].Coordinates.X) // The lowest X value is farthest left
-				   {
-					   temp = SubmeshList[ i ];    //swapping entire element
-					   SubmeshList[ i ] = SubmeshList[ j ];
-					   SubmeshList[ j ] = temp;
-				   }
-			   }
-		  }
-		  return;
-	}
 
 	void sortPointHighLow (core::array<scene::CM2Mesh::BufferInfo> &BlockList)
 	{

@@ -270,15 +270,12 @@ void loadModel(const c8* fn)
 	  fwrite(info.c_str(),1,info.size(),s); // print to file
 	  fseek(s,1,true); // Insert space in File
 	  irr::io::SNamedPath name;
-      if(m->getMeshBuffer(i)->getMaterial().getTexture(0)){
-		name = m->getMeshBuffer(i)->getMaterial().getTexture(0)->getName();
-		info = name.getInternalName().c_str();
-	  }
-      else
-        info = "none";
+      // Get texture path and name
+	  name = m->getMeshBuffer(i)->getMaterial().getTexture(0)->getName();
 	  info = name.getInternalName().c_str();
 	  fwrite(info.c_str(),1,info.size(),s); // print to file
 	  fseek(s,1,true); // Isert space in File
+
       info = "Material Type: ";
       switch(((scene::CM2Mesh*)(m))->BufferMap[i].blend)
       {
@@ -359,6 +356,7 @@ void loadModel(const c8* fn)
 		scene::IAnimatedMeshSceneNode* animModel = Device->getSceneManager()->addAnimatedMeshSceneNode(m);
 		animModel->setAnimationSpeed(1000);
         animModel->setM2Animation(0);
+		((scene::CM2Mesh*)(m))->LinkChildMeshes(animModel, Device->getSceneManager()); // link child mesh nodes
 		Model = animModel;
 	}
 	Model->setDebugDataVisible(scene::EDS_OFF);
