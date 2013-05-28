@@ -789,7 +789,7 @@ bool CM2MeshFileLoader::load()
       //SkinName = SkinName.substr(0, SkinName.length()-3) + "00.skin"; // FIX ME if we need more skins
 	
 	  // Load and read skins
-	  for (u16 n = 0; n < 100; n++)  // can't possibly more than 99 skins per mesh probably much less
+	  for (u16 n = 0; n < header.Views.num; n++)
 	  {
 			std::string SkinName = MeshFile->getFileName().c_str();
 			//SkinName = SkinName.substr(0, SkinName.length()-3) + "00.skin"; // FIX ME if we need more skins
@@ -811,32 +811,20 @@ bool CM2MeshFileLoader::load()
 			}
 			SkinName = ext.str();
     
-			// Try to load our made up name.  If it works keep guesing names till one fails to be a real filename.
+			// Load our made up filename.  
 			io::IReadFile* SkinFile = io::IrrCreateIReadFileBasic(Device, SkinName.c_str()); // if it is there load it
-			//if (4 > SkinFile->getSize()) 
-			if (!SkinFile)
-			{
-				n=100; // if the curent pass's SkinName isn't a real filename stop making up skin names
-				logdetail("Please note that the generated file name '%s' is not a file in this directory.", SkinName.c_str());
-			}
-			/*if (!SkinFile)
+			if (!SkinFile) // if it didnt load we have an error
 			{
 				logerror("Error! Skin file not found: %s", SkinName.c_str());
 				return 0;
-			}*/
-			else
+			}
+			else           // No error so read the skin
 			{
-				//SkinFile->seek(4); // Header of Skin Files is always SKIN
-				std::string tag;
-				SkinFile->read(&tag, 4);
-				if (tag.find("SKIN") != std::string::npos)
-				if ( strstr( tag.c_str(), "SKIN" ))
-				{
-					SkinFile->read(&currentView,sizeof(ModelView)); // overwrites previous currentview if any
-					ReadViewData(SkinFile);
-					SkinFile->drop();
-					logdetail("Read veiw data from %s .", SkinName.c_str());
-				}
+				SkinFile->seek(4); // Header of Skin Files is always SKIN
+				SkinFile->read(&currentView,sizeof(ModelView)); // overwrites previous currentview if any
+				ReadViewData(SkinFile);
+				SkinFile->drop();
+				logdetail("Read veiw data from %s .", SkinName.c_str());
 			}
 	  }
 
