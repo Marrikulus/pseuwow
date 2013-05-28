@@ -83,7 +83,7 @@ void CM2MeshFileLoader::ReadVertices()
 void CM2MeshFileLoader::ReadViewData(io::IReadFile* file)
 {
     SkinData TempSkin;
-	M2MSkins.push_back(TempSkin);  // Store an empty veiw. 
+	   
 
 	//Vertex indices of a specific view.  Local to currentView
 	u16 tempM2Index;
@@ -92,9 +92,9 @@ void CM2MeshFileLoader::ReadViewData(io::IReadFile* file)
 	for(u32 i =0;i<currentView.Index.num;i++)
 	{
 		file->read(&tempM2Index,sizeof(u16));
-		M2MSkins.getLast().M2MIndices.push_back(tempM2Index);
+		TempSkin.M2MIndices.push_back(tempM2Index);
 	}
-	DEBUG(logdebug("Read %u/%u Indices",M2MSkins.getLast().M2MIndices.size(),currentView.Index.num));
+	DEBUG(logdebug("Read %u/%u Indices",TempSkin.M2MIndices.size(),currentView.Index.num));
 
 
 	//Triangles. Data Points point to the Vertex Indices, not the vertices themself. 3 Points = 1 Triangle, Local to currentView
@@ -104,9 +104,9 @@ void CM2MeshFileLoader::ReadViewData(io::IReadFile* file)
 	for(u32 i =0;i<currentView.Triangle.num;i++)
 	{
 		file->read(&tempM2Triangle,sizeof(u16));
-		M2MSkins.getLast().M2MTriangles.push_back(tempM2Triangle);
+		TempSkin.M2MTriangles.push_back(tempM2Triangle);
 	}
-	DEBUG(logdebug("Read %u/%u Triangles",M2MSkins.getLast().M2MTriangles.size(),currentView.Triangle.num));
+	DEBUG(logdebug("Read %u/%u Triangles",TempSkin.M2MTriangles.size(),currentView.Triangle.num));
 	//Submeshes, Local to currentView
 	ModelViewSubmesh tempM2Submesh;
 		
@@ -114,11 +114,11 @@ void CM2MeshFileLoader::ReadViewData(io::IReadFile* file)
 	for(u32 i =0;i<currentView.Submesh.num;i++)
 	{
 		file->read(&tempM2Submesh,sizeof(ModelViewSubmesh)-(header.version==0x100?16:0));
-		M2MSkins.getLast().M2MSubmeshes.push_back(tempM2Submesh);
+		TempSkin.M2MSubmeshes.push_back(tempM2Submesh);
 		DEBUG(logdebug("Submesh %u MeshPartID %u",i,tempM2Submesh.meshpartId));
 	//    std::cout<< "Submesh " <<i<<" ID "<<tempM2Submesh.meshpartId<<" starts at V/T "<<tempM2Submesh.ofsVertex<<"/"<<tempM2Submesh.ofsTris<<" and has "<<tempM2Submesh.nVertex<<"/"<<tempM2Submesh.nTris<<" V/T\n";
 	}
-	DEBUG(logdebug("Read %u/%u Submeshes",M2MSkins.getLast().M2MSubmeshes.size(),currentView.Submesh.num));
+	DEBUG(logdebug("Read %u/%u Submeshes",TempSkin.M2MSubmeshes.size(),currentView.Submesh.num));
 
 
 	//Texture units. Local to currentView
@@ -128,10 +128,12 @@ void CM2MeshFileLoader::ReadViewData(io::IReadFile* file)
 	for(u32 i=0;i<currentView.Tex.num;i++)
 	{
 		file->read(&tempM2TexUnit,sizeof(TextureUnit));
-		M2MSkins.getLast().M2MTextureUnit.push_back(tempM2TexUnit);
+		TempSkin.M2MTextureUnit.push_back(tempM2TexUnit);
 	DEBUG(logdebug(" TexUnit %u: Submesh: %u %u Render Flag: %u TextureUnitNumber: %u %u TTU: %u",i,tempM2TexUnit.submeshIndex1,tempM2TexUnit.submeshIndex2, tempM2TexUnit.renderFlagsIndex, tempM2TexUnit.TextureUnitNumber, tempM2TexUnit.TextureUnitNumber2 ,tempM2TexUnit.textureIndex));
 	}
-	DEBUG(logdebug("Read %u Texture Unit entries for View %u",M2MSkins.getLast().M2MTextureUnit.size(), M2MSkins.size()-1));
+	DEBUG(logdebug("Read %u Texture Unit entries for View %u",TempSkin.M2MTextureUnit.size(), M2MSkins.size()-1));
+
+	M2MSkins.push_back(TempSkin);
 
 }
 
@@ -325,36 +327,74 @@ void CM2MeshFileLoader::ReadAnimationData()
 //         DEBUG(logdebug("Global Sequence %u End %u",i,tempGlobalSeq));
 //     }
 //     DEBUG(logdebug("Read %u Global Sequence entries",M2MGlobalSequences.size()));
-//
-//     //BoneLookupTable. This is global data
-//     u16 tempBoneLookup;
-//     if(!M2MBoneLookupTable.empty())
-//     {
-//         M2MBoneLookupTable.clear();
-//     }
-//     MeshFile->seek(header.BoneLookupTable.ofs);
-//     for(u32 i=0;i<header.BoneLookupTable.num;i++)
-//     {
-//         MeshFile->read(&tempBoneLookup,sizeof(u16));
-//         M2MBoneLookupTable.push_back(tempBoneLookup);
-//         DEBUG(logdebug("BoneLookupTable %u Value %u",i,tempBoneLookup));
-//     }
-//     DEBUG(logdebug("Read %u BoneLookupTable entries",M2MBoneLookupTable.size()));
-//
-//     //SkeleBoneLookupTable. This is global data
-//     u16 tempSkeleBoneLookup;
-//     if(!M2MSkeleBoneLookupTable.empty())
-//     {
-//         M2MSkeleBoneLookupTable.clear();
-//     }
-//     MeshFile->seek(header.SkelBoneLookup.ofs);
-//     for(u32 i=0;i<header.SkelBoneLookup.num;i++)
-//     {
-//         MeshFile->read(&tempSkeleBoneLookup,sizeof(u16));
-//         M2MSkeleBoneLookupTable.push_back(tempSkeleBoneLookup);
-//         DEBUG(logdebug("SkeleBoneLookupTable %u Value %u",i,tempSkeleBoneLookup));
-//     }
-//     DEBUG(logdebug("Read %u SkeleBoneLookupTable entries",M2MSkeleBoneLookupTable.size()));
+
+     //BoneLookupTable. This is global data.  Used by submeshes to indicate the bones they are associated with
+     u16 tempBoneLookup;
+     if(!M2MBoneLookupTable.empty())
+     {
+         M2MBoneLookupTable.clear();
+     }
+     MeshFile->seek(header.BoneLookupTable.ofs);
+     for(u32 i=0;i<header.BoneLookupTable.num;i++)
+     {
+         MeshFile->read(&tempBoneLookup,sizeof(u16));
+         M2MBoneLookupTable.push_back(tempBoneLookup);
+         DEBUG(logdebug("BoneLookupTable %u Value %u",i,tempBoneLookup));
+     }
+     DEBUG(logdebug("Read %u BoneLookupTable entries",M2MBoneLookupTable.size()));
+
+     //SkeleBoneLookupTable. This is global data
+     u16 tempSkeleBoneLookup;
+     if(!M2MSkeleBoneLookupTable.empty())
+     {
+         M2MSkeleBoneLookupTable.clear();
+     }
+     MeshFile->seek(header.SkelBoneLookup.ofs);
+     for(u32 i=0;i<header.SkelBoneLookup.num;i++)
+     {
+         MeshFile->read(&tempSkeleBoneLookup,sizeof(u16));
+         M2MSkeleBoneLookupTable.push_back(tempSkeleBoneLookup);
+         DEBUG(logdebug("SkeleBoneLookupTable %u Value %u",i,tempSkeleBoneLookup));
+     }
+     DEBUG(logdebug("Read %u SkeleBoneLookupTable entries",M2MSkeleBoneLookupTable.size()));
+
+	 /* Index into SkelBoneLookupTable. |  Name of that index.   refrenced by M2MBones element(-1 if none) to indicate name of bone
+						00                 "ArmL" 
+						01                 "ArmR" 
+						02                 "ShoulderL" 
+						03                 "ShoulderR" 
+						04                 "SpineLow" 
+						05                 "Waist" 
+						06                 "Head" 
+						07                 "Jaw" 
+						08                 "IndexFingerR" 
+						09                 "MiddleFingerR" 
+						10                 "PinkyFingerR" 
+						11                 "RingFingerR" 
+						12                 "ThumbR" 
+						13                 "IndexFingerL" 
+						14                 "MiddleFingerL" 
+						15                 "PinkyFingerL" 
+						16                 "RingFingerL" 
+						17                 "ThumbL" 
+						18                 "$BTH" 
+						19                 "$CSR" 
+						20                 "$CSL" 
+						21                 "_Breath" 
+						22                 "_Name" 
+						23                 "_NameMount" 
+						24                 "$CHD" 
+						25                 "$CCH" 
+						26                 "Root" 
+						27                 "Wheel1" 
+						28                 "Wheel2" 
+						29                 "Wheel3" 
+						30                 "Wheel4" 
+						31                 "Wheel5" 
+						32                 "Wheel6" 
+						33                 "Wheel7" 
+						34                 "Wheel8" 
+						*/
 
     //Animations. This is global data
     u32 laststart = 0;
@@ -789,6 +829,7 @@ bool CM2MeshFileLoader::load()
 				//SkinFile->seek(4); // Header of Skin Files is always SKIN
 				std::string tag;
 				SkinFile->read(&tag, 4);
+				if (tag.find("SKIN") != std::string::npos)
 				if ( strstr( tag.c_str(), "SKIN" ))
 				{
 					SkinFile->read(&currentView,sizeof(ModelView)); // overwrites previous currentview if any
@@ -818,24 +859,28 @@ bool CM2MeshFileLoader::load()
 ///////////////////////////
 // EVERYTHING IS READ
 ///////////////////////////
-
+  
 //////////////////////////////////////////////////
 // Colect and store submesh data for all submeshes
 //////////////////////////////////////////////////
+
 
 // ToDo:: Store all M2MTextureFiles in the CM2Mesh.  Copy all M2MSkins to AnimatedMesh.Skins. Store all Animated data in the CM2Mesh too
 for(u16 S = 0; S < M2MSkins.size(); S++)
 {
 	CM2Mesh::skin skin;
+	core::array<CM2Mesh::submesh> sky;
+	core::array<CM2Mesh::submesh> ground;
 	AnimatedMesh->Skins.push_back(skin); // add an empty skin
 	AnimatedMesh->Skins[S].ID = S ; // 00.skin will be Skins[0]
 	for(u16 s = 0; s < M2MSkins[S].M2MSubmeshes.size(); s++)
 	{
-		CM2Mesh::submesh Submesh;
-		AnimatedMesh->Skins[S].Submeshes.push_back(Submesh); // store a blank submesh
-		AnimatedMesh->Skins[S].Submeshes.getLast().MeshPart = M2MSkins[S].M2MSubmeshes[s].meshpartId;
-		// Might store parent bone for submesh then link submesh to bone
-
+		CM2Mesh::submesh Submesh;  
+		//AnimatedMesh->Skins[S].Submeshes.push_back(Submesh); // store a blank submesh
+		Submesh.MeshPart = M2MSkins[S].M2MSubmeshes[s].meshpartId; // AnimatedMesh->Skins[S].Submeshes.getLast().
+		// Store parent bone for submesh so we can link submesh to bone
+		Submesh.RootBone = M2MBoneLookupTable[M2MSkins[S].M2MSubmeshes[s].unk4]; //M2MBoneLookupTable[M2MSkins[S].M2MSubmeshes[s].unk4];
+		Submesh.Radius = M2MSkins[S].M2MSubmeshes[s].Radius;
 		// vertex range should be the same for all instances of a submesh regardless of current skin so 
 		// using it to name submeshes is a good way to prevent duplication while using multiple skins
 		std::ostringstream vertrange;
@@ -845,7 +890,7 @@ for(u16 S = 0; S < M2MSkins.size(); S++)
 		u16 endvertrange = M2MSkins[S].M2MSubmeshes[s].ofsVertex+M2MSkins[S].M2MSubmeshes[s].nVertex;
 		vertrange<< endvertrange;
 		std::string vertstring = vertrange.str();
-		AnimatedMesh->Skins[S].Submeshes.getLast().UniqueName = vertstring.c_str(); // save the submesh name
+		Submesh.UniqueName = vertstring.c_str(); // save the submesh name
 		// later when activating skins check if a mesh exists by this name and reuse it updating its data to match current skin
 				
 		// get all texture data for this submesh
@@ -856,22 +901,45 @@ for(u16 S = 0; S < M2MSkins.size(); S++)
 				scene::CM2Mesh::texture Texture;
 				Texture.TextureNumber = M2MSkins[S].M2MTextureUnit[t].TextureUnitNumber;
 				Texture.Path = M2MTextureLookup[M2MSkins[S].M2MTextureUnit[t].textureIndex]; 
-				u8 animatedFlag = M2MSkins[0].M2MTextureUnit[t].Flags & 0xFF;   // get first 8bits this flag sets texture animation
+				u8 animatedFlag = M2MSkins[S].M2MTextureUnit[t].Flags & 0xFF;   // get first 8bits this flag sets texture animation
 				if (animatedFlag == 0){
 					Texture.animated = true;}
 				else{
 					Texture.animated = false;}
 				Texture.RenderFlag = M2MRenderFlags[M2MSkins[S].M2MTextureUnit[t].renderFlagsIndex].flags;
 				Texture.BlendFlag = M2MRenderFlags[M2MSkins[S].M2MTextureUnit[t].renderFlagsIndex].blending;
+				Texture.Mode = M2MSkins[S].M2MTextureUnit[t].Mode;
+				u8 renderFlag = M2MSkins[S].M2MTextureUnit[t].Flags >> 8;
+				Texture.Block = renderFlag;
 				Texture.VertexColor = M2MSkins[S].M2MTextureUnit[t].colorIndex;
 				Texture.transparency = M2MSkins[S].M2MTextureUnit[t].transparencyIndex;
 				Texture.uvanimation = M2MSkins[S].M2MTextureUnit[t].texAnimIndex;
 						
-				AnimatedMesh->Skins[S].Submeshes.getLast().Textures.push_back(Texture);
+				Submesh.Textures.push_back(Texture);
 			}
 		}
+		if (Submesh.Radius > 5) // if this submesh is big
+		{
+			sky.push_back(Submesh);          
+		}
+		if (Submesh.Radius <= 5) // if this submesh is normal
+		{
+			ground.push_back(Submesh);          
+		}
 	}
+	
+	//sortRadius (0, SubMeshLookUps.size()-1, S);
+	sortSizeBracketByMode (0, sky.size()-1, sky);
+	sortModeByBlock(0, sky.size()-1, sky);
+	sortSizeBracketByMode (0, ground.size()-1, ground);
+	sortModeByBlock(0, ground.size()-1, ground);
+	for (u16 t = 0; t <sky.size(); t++){
+		AnimatedMesh->Skins[S].Submeshes.push_back(sky[t]);}
+	for (u16 t = 0; t <ground.size(); t++){
+		AnimatedMesh->Skins[S].Submeshes.push_back(ground[t]);}
+	sky.clear();
 }
+
 // set default skin for the mesh
 AnimatedMesh->SkinID = 0;
 // Copy global data lists to the mesh
@@ -882,31 +950,35 @@ for (u16 t = 0; t <M2MTextureFiles.size(); t++)
 //ToDo:: colors lights cams other animation etc
 
 
+
 /////////////////////////////////////////////////
 //     submesh maping to reorder submeshes     //
 /////////////////////////////////////////////////
-    // only using first skin here as this section will be depreciated when CM2Mesh stores it's own skins
+    // this section will be depreciated when CM2Mesh stores it's own skins
 	scene::CM2Mesh::BufferInfo meshmap;
 	irr::core::array<scene::CM2Mesh::BufferInfo> SubmeshMap;
-	u32 range = M2MSkins[0].M2MSubmeshes.size();
+
+	u16 skin = AnimatedMesh->SkinID;
+
+	u32 range = M2MSkins[skin].M2MSubmeshes.size();
 	for (u16 s = 0; s < range; s++)           // Loop through the submeshes
 	{
 		u16 t;
-		for (u16 T = 0; T < M2MSkins[0].M2MTextureUnit.size(); T++){     // Find the first textureunit that applies to submesh S
-			if (M2MSkins[0].M2MTextureUnit[T].submeshIndex1 == s){
+		for (u16 T = 0; T < M2MSkins[skin].M2MTextureUnit.size(); T++){     // Find the first textureunit that applies to submesh S
+			if (M2MSkins[skin].M2MTextureUnit[T].submeshIndex1 == s){
 				t=T;
-				T=M2MSkins[0].M2MTextureUnit.size(); // End the loop since we found a texture
+				T=M2MSkins[skin].M2MTextureUnit.size(); // End the loop since we found a texture
 			}
 		}
 		meshmap.ID = s;                                     // This SubMesh's index
-		meshmap.Mode = M2MSkins[0].M2MTextureUnit[t].Mode;              // This is mode.
-		u8 animatedFlag = M2MSkins[0].M2MTextureUnit[t].Flags & 0xFF;   // get first 8bits this flag sets texture animation
-		u8 renderFlag = M2MSkins[0].M2MTextureUnit[t].Flags >> 8;       // get the second 8bits this flag sets some sort of submesh grouping
-		meshmap.order = M2MSkins[0].M2MTextureUnit[t].renderOrder;      // Indicates how this effect should be applyed for instance 2 is an overlay
+		meshmap.Mode = M2MSkins[skin].M2MTextureUnit[t].Mode;              // This is mode.
+		u8 animatedFlag = M2MSkins[skin].M2MTextureUnit[t].Flags & 0xFF;   // get first 8bits this flag sets texture animation
+		u8 renderFlag = M2MSkins[skin].M2MTextureUnit[t].Flags >> 8;       // get the second 8bits this flag sets some sort of submesh grouping
+		meshmap.order = M2MSkins[skin].M2MTextureUnit[t].renderOrder;      // Indicates how this effect should be applyed for instance 2 is an overlay
 		meshmap.block = renderFlag;
-		meshmap.Coordinates = fixCoordSystem(M2MSkins[0].M2MSubmeshes[meshmap.ID].CenterOfMass);// fix the coordinates since Y is depth in ModelViewSubmesh vectors but we use Z depth 
-		meshmap.flag = M2MRenderFlags[M2MSkins[0].M2MTextureUnit[t].renderFlagsIndex].flags;
-		meshmap.blend = M2MRenderFlags[M2MSkins[0].M2MTextureUnit[t].renderFlagsIndex].blending;
+		meshmap.Coordinates = fixCoordSystem(M2MSkins[skin].M2MSubmeshes[meshmap.ID].CenterOfMass);// fix the coordinates since Y is depth in ModelViewSubmesh vectors but we use Z depth 
+		meshmap.flag = M2MRenderFlags[M2MSkins[skin].M2MTextureUnit[t].renderFlagsIndex].flags;
+		meshmap.blend = M2MRenderFlags[M2MSkins[skin].M2MTextureUnit[t].renderFlagsIndex].blending;
 		if (meshmap.blend > 1)
 			meshmap.solid = false;
 		else
@@ -916,37 +988,49 @@ for (u16 t = 0; t <M2MTextureFiles.size(); t++)
 		else
 			meshmap.animatedtexture = false;
 		// trying to understand what this flag is
-		meshmap.unknown = M2MSkins[0].M2MSubmeshes[meshmap.ID].unk3;
-		std::string tex = Device->getFileSystem()->getFileBasename(M2MTextureFiles[M2MTextureLookup[M2MSkins[0].M2MTextureUnit[t].textureIndex]].c_str(), true).c_str();
-		meshmap.Radius = M2MSkins[0].M2MSubmeshes[meshmap.ID].Radius;
+		meshmap.unknown = M2MSkins[skin].M2MSubmeshes[meshmap.ID].unk3;
+		std::string tex = Device->getFileSystem()->getFileBasename(M2MTextureFiles[M2MTextureLookup[M2MSkins[skin].M2MTextureUnit[t].textureIndex]].c_str(), false).c_str();
+		meshmap.Radius = M2MSkins[skin].M2MSubmeshes[meshmap.ID].Radius;
 
-		logdetail("For Submesh %u unk3 %u and unk4 %u texture %s.", meshmap.ID, meshmap.unknown, M2MSkins[0].M2MSubmeshes[meshmap.ID].unk4, tex);
+		logdetail("For Submesh %u unk3 %u and unk4 %u texture", meshmap.ID, meshmap.unknown, M2MSkins[skin].M2MSubmeshes[meshmap.ID].unk4); // %s.", meshmap.ID, meshmap.unknown, M2MSkins[skin].M2MSubmeshes[meshmap.ID].unk4, tex);
+		logdetail(tex.c_str());
 		logdetail("  mode %u block %u Order %u", meshmap.Mode, meshmap.block, meshmap.order);
 		std::ostringstream rad;
 		rad<< meshmap.Radius;
 		std::string Radius = rad.str();
-		logdetail("    Radius = %s", Radius.c_str());
+		logdetail("    RenderFlag %u Radius = %s", meshmap.flag, Radius.c_str());
 
-		float B = M2MVertices[M2MSkins[0].M2MSubmeshes[meshmap.ID].ofsVertex].pos.Z; 
+		float B = M2MVertices[M2MSkins[skin].M2MSubmeshes[meshmap.ID].ofsVertex].pos.Z; 
 		float F = B;
-		for (int j = M2MSkins[0].M2MSubmeshes[meshmap.ID].ofsVertex; j < M2MSkins[0].M2MSubmeshes[meshmap.ID].ofsVertex + M2MSkins[0].M2MSubmeshes[meshmap.ID].nVertex; j++)
+		logdetail("Start vertex %u end vertex %u", M2MSkins[skin].M2MSubmeshes[meshmap.ID].ofsVertex, M2MSkins[skin].M2MSubmeshes[meshmap.ID].ofsVertex + M2MSkins[skin].M2MSubmeshes[meshmap.ID].nVertex);
+		/*for (int j = M2MSkins[skin].M2MSubmeshes[meshmap.ID].ofsVertex; j < M2MSkins[skin].M2MSubmeshes[meshmap.ID].ofsVertex + M2MSkins[skin].M2MSubmeshes[meshmap.ID].nVertex; j++)
 		{ 
-			if (M2MVertices[j].pos.Z > B)  // find the farthest(largest) depth value in the submesh
+			/* // if total vertices are less than the largest index into vertices for this submesh
+			if (M2MVertices.size()-1 < M2MSkins[skin].M2MSubmeshes.getLast().ofsVertex + M2MSkins[skin].M2MSubmeshes.getLast().nVertex)
+			{
+				// M2MVertices has less elements than are referenced in the skins for ui northrend
+				// add empty vertices at the end of m2mvertices to prevent core::array acces violation when direct accessing the last element in array for debug build
+				for (u16 q = M2MVertices.size()-1; q < M2MSkins[skin].M2MSubmeshes.getLast().ofsVertex + M2MSkins[skin].M2MSubmeshes.getLast().nVertex; q++)
+				{
+				M2MVertices.push_back(M2MVertices.getLast()); // coppy the last ellement untill total ellements = total refrences
+				}
+			}*/
+			/*if (M2MVertices[j].pos.Z > B)  // find the farthest(largest) depth value in the submesh
 			{
 				B = M2MVertices[j].pos.Z;
 			}
 			if (M2MVertices[j].pos.Z < F) // find the nearest(Smallest) depth value in the submesh
 			{
 				F = M2MVertices[j].pos.Z;
-			}
-		}
+			}*/
+		//}
 		meshmap.Back = B;
 		meshmap.Front = F;
 		meshmap.Middle = meshmap.Coordinates.Z; // middle value for aabb
 		// Get X edges
 		meshmap.Xpos = meshmap.Coordinates.X;
 		meshmap.Xneg = meshmap.Coordinates.X;
-		for (int j = M2MSkins[0].M2MSubmeshes[meshmap.ID].ofsVertex; j < M2MSkins[0].M2MSubmeshes[meshmap.ID].ofsVertex + M2MSkins[0].M2MSubmeshes[meshmap.ID].nVertex; j++)
+		/*for (int j = M2MSkins[skin].M2MSubmeshes[meshmap.ID].ofsVertex; j < M2MSkins[skin].M2MSubmeshes[meshmap.ID].ofsVertex + M2MSkins[skin].M2MSubmeshes[meshmap.ID].nVertex; j++)
 		{
 			if (M2MVertices[j].pos.X < meshmap.Xneg)
 			{
@@ -956,11 +1040,11 @@ for (u16 t = 0; t <M2MTextureFiles.size(); t++)
 			{
 				meshmap.Xpos = M2MVertices[j].pos.X;
 			}
-		}
+		}*/
 		// Get Y edges
 		meshmap.Ypos = meshmap.Coordinates.Y;
 		meshmap.Yneg = meshmap.Coordinates.Y;
-		for (int j = M2MSkins[0].M2MSubmeshes[meshmap.ID].ofsVertex; j < M2MSkins[0].M2MSubmeshes[meshmap.ID].ofsVertex + M2MSkins[0].M2MSubmeshes[meshmap.ID].nVertex; j++)
+		/*for (int j = M2MSkins[skin].M2MSubmeshes[meshmap.ID].ofsVertex; j < M2MSkins[skin].M2MSubmeshes[meshmap.ID].ofsVertex + M2MSkins[skin].M2MSubmeshes[meshmap.ID].nVertex; j++)
 		{
 			if (M2MVertices[j].pos.Y < meshmap.Yneg)
 			{
@@ -970,7 +1054,7 @@ for (u16 t = 0; t <M2MTextureFiles.size(); t++)
 			{
 				meshmap.Ypos = M2MVertices[j].pos.Y;
 			}
-		}
+		}*/
 		// Set the Sort Point (currently using mode might be beater to use renderflag to determine sortpoint)
 		    //Mode 1 meshes
 		if (meshmap.Mode == 1){                         // Mountains and backdrop
@@ -996,7 +1080,7 @@ for (u16 t = 0; t <M2MTextureFiles.size(); t++)
 		SubmeshMap.push_back(meshmap);
 	}
 	// copy elements to BufferMap
-	// Backdrop
+	/* // Backdrop
 	core::array<scene::CM2Mesh::BufferInfo> Scene;
 	core::array<scene::CM2Mesh::BufferInfo> Overlays;
 	for (u16 b = 0; b < SubmeshMap.size(); b++)
@@ -1061,12 +1145,20 @@ for (u16 t = 0; t <M2MTextureFiles.size(); t++)
 	Scene.erase(0,Scene.size());
 	
 	// Now insert overlays
-	InsertOverlays(Overlays,AnimatedMesh->BufferMap);
+	//InsertOverlays(Overlays,AnimatedMesh->BufferMap);
+	*/
+	for (u16 b = 0; b < SubmeshMap.size(); b++){
+		AnimatedMesh->BufferMap.push_back(SubmeshMap[b]);} /*
+	sortRadius (0, SubmeshMap.size()-1, 0);
+	sortSizeBracketByMode (0, strt-1, 0);
+	sortModeByBlock(0, strt-1, 0);
+	sortSizeBracketByMode (strt, SubmeshMap.size()-1, 0);
+	sortModeByBlock(strt, SubmeshMap.size()-1, 0);*/
 
 	
 	// Clear Temps
-	Overlays.clear();
-	Scene.clear();
+	//Overlays.clear();
+	//Scene.clear();
 	SubmeshMap.clear();
 
 
@@ -1105,6 +1197,7 @@ if (std::mismatch(prefix.begin(), prefix.end(), MeshFileName.begin()).first == p
 //if ( strstr( MeshFileName.c_str(), "UI_" )) // if MeshFileName contains UI_
 {
 	u32 v = 0; // currently I am limiting skin usage to skin 0
+	AnimatedMesh->SkinID = v; // remove this later as skinid is set when storing globals in the mesh
 	for (u32 i = 0; i < M2MSkins[v].M2MSubmeshes.size(); i++)
 	{
 		// will need to see if a mesh with this UniqueName is already loaded to avoid multiple copies

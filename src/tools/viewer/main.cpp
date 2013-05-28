@@ -21,7 +21,7 @@ tutorial, we use a lot stuff from the gui namespace.
 #include "GUI/CWMOMeshFileLoader.h"
 #include "GUI/MemoryInterface.h"
 #include "MemoryDataHolder.h"
-#include "CAnimatedMeshSceneNode.h"
+//#include "CAnimatedMeshSceneNode.h"
 
 
 using namespace irr;
@@ -353,11 +353,15 @@ void loadModel(const c8* fn)
 		Model = Device->getSceneManager()->addOctTreeSceneNode(m->getMesh(0));
 	else
 	{
+		//scene::CAnimatedMeshSceneNode* null;
 		scene::IAnimatedMeshSceneNode* animModel = Device->getSceneManager()->addAnimatedMeshSceneNode(m);
 		animModel->setAnimationSpeed(1000);
         animModel->setM2Animation(0);
-		((scene::CM2Mesh*)(m))->LinkChildMeshes(animModel, Device->getSceneManager()); // link child mesh nodes
+		core::array<scene::IBoneSceneNode*> ChildBoneSceneNodes;
+		((scene::CM2Mesh*)(m))->createJoints(ChildBoneSceneNodes, animModel, Device->getSceneManager());
+		((scene::CM2Mesh*)(m))->LinkChildMeshes(animModel, Device->getSceneManager(), ChildBoneSceneNodes); // link child mesh nodes
 		Model = animModel;
+		ChildBoneSceneNodes.clear();
 	}
 	Model->setDebugDataVisible(scene::EDS_OFF);
 	// we need to uncheck the menu entries. would be cool to fake a menu event, but

@@ -203,15 +203,19 @@ namespace scene
 			bool animated;     
 			u16 RenderFlag; 
 			u16 BlendFlag;
+			u16 Mode;
+			u16 Block; // = some sort of render flag indicating submesh grouping&order
 			//pointers to animations
 			u16 VertexColor;  // needs to point directly into cm2mesh::VertexColor or =-1 for no color
 			u16 transparency; // needs to = transparencylookup[textureunit.transparency] to point into the global CM2Mesh::Transparency
 			u16 uvanimation;  // needs to = uvanimationlookup[textureunit.texAnimIndex] to point into the global CM2Mesh::UVAnimations
 		};
 		struct submesh{
-			u32 MeshPart;              // indcates head or hand or other parts.  Could do this as a string
+			u32 MeshPart;             // indcates head or hand or other parts.  Could do this as a string
+			u16 RootBone;             // index to bone/joint this submesh attaches to
+			float Radius;
 			core::stringc UniqueName; // id for the submesh incase submesh's geometry exists in multiple .skins.  Id should look like StartVertex_EndVertex.  maybe list bones for this submesh too
-			irr::core::array <texture> Textures; // this submesh's texture descriptions
+			irr::core::array <texture> Textures; // this submesh's texture descriptions (should be limited to 3)
 		};
 		struct skin{
 			u16 ID; // xx.skin id like 0, 1, 2 etc...
@@ -220,7 +224,7 @@ namespace scene
 
 		core::array<skin> Skins;
 		u32 SkinID; // points to active skin
-		void LinkChildMeshes(IAnimatedMeshSceneNode *UI_ParentMeshNode, ISceneManager *smgr); // use this for UI meshes
+		void LinkChildMeshes(IAnimatedMeshSceneNode *UI_ParentMeshNode, ISceneManager *smgr, core::array<IBoneSceneNode*> &JointChildSceneNodes); // use this for UI (scene) meshes
 private:
 
 		void checkForAnimation();

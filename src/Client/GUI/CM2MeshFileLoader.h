@@ -298,6 +298,83 @@ private:
     core::array<scene::ISkinnedMesh::SJoint> M2Joints;
 
 
+	void sortSizeBracketByMode (int b, int B, core::array<CM2Mesh::submesh> &Submesh) // b=bracket start, B=bracket end, s=skin index
+	{
+		CM2Mesh::submesh temp;
+		//CM2Mesh::BufferInfo temp;
+		for (int i = b; i <= B; i++) 
+		{
+			for (u16 j = b+1; j <= B; j++)
+			{/*
+				if (AnimatedMesh->BufferMap[i].Mode > AnimatedMesh->BufferMap[j].Mode)
+				{
+					temp = AnimatedMesh->BufferMap[i];
+					AnimatedMesh->BufferMap[i] = AnimatedMesh->BufferMap[j];
+					AnimatedMesh->BufferMap[j] = temp;
+				}*/
+				if (Submesh[i].Textures[0].Mode > Submesh[j].Textures[0].Mode)  // AnimatedMesh->Skins[s].Submeshes
+				{
+					temp = Submesh[i];
+					Submesh[i] = Submesh[j];
+					Submesh[j] = temp;
+				}
+
+			}
+		}
+	}
+
+
+	void sortModeByBlock(int b, int B, core::array<CM2Mesh::submesh> &Submesh) // b=bracket start, B=bracket end, s=skin index
+	{
+		CM2Mesh::submesh temp;
+		//CM2Mesh::BufferInfo temp;
+		for (int i = b; i <= B; i++) 
+		{
+			for (u16 j = b+1; j <= B; j++)
+			{
+				// if they are the same mode sort by block
+				/*if (AnimatedMesh->BufferMap[i].Mode == AnimatedMesh->BufferMap[j].Mode && AnimatedMesh->BufferMap[i].block > AnimatedMesh->BufferMap[j].block)
+				{
+					temp = AnimatedMesh->BufferMap[i];
+					AnimatedMesh->BufferMap[i] = AnimatedMesh->BufferMap[j];
+					AnimatedMesh->BufferMap[j] = temp;
+				}*/
+				if (Submesh[i].Textures[0].Mode == Submesh[j].Textures[0].Mode && Submesh[i].Textures[0].Block > Submesh[j].Textures[0].Block)
+				{
+					temp = Submesh[i];
+					Submesh[i] = Submesh[j];
+					Submesh[j] = temp;
+				}
+			}
+		}
+	}
+
+
+	void sortRadius(int b, int B, int s) // b=bracket start, B=bracket end, s=skin index
+	{
+		//CM2Mesh::submesh temp;
+		CM2Mesh::BufferInfo temp;
+		for (int i = b; i <= B; i++) 
+		{
+			for (u16 j = b+1; j <= B; j++)
+			{
+				if (AnimatedMesh->BufferMap[i].Radius > AnimatedMesh->BufferMap[j].Radius)
+				{
+					temp = AnimatedMesh->BufferMap[i];
+					AnimatedMesh->BufferMap[i] = AnimatedMesh->BufferMap[j];
+					AnimatedMesh->BufferMap[j] = temp;
+				}
+				/*if (AnimatedMesh->Skins[s].Submeshes[i].Radius > AnimatedMesh->Skins[s].Submeshes[j].Radius)
+				{
+					temp = AnimatedMesh->Skins[s].Submeshes[i];
+					AnimatedMesh->Skins[s].Submeshes[i] = AnimatedMesh->Skins[s].Submeshes[j];
+					AnimatedMesh->Skins[s].Submeshes[j] = temp;
+				}*/
+			}
+		}
+	}
+
+
 	void sortPointHighLow (core::array<scene::CM2Mesh::BufferInfo> &BlockList)
 	{
 		  scene::CM2Mesh::BufferInfo temp;
