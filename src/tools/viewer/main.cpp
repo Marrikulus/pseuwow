@@ -243,7 +243,7 @@ void loadModel(const c8* fn)
 
 	//Log submesh info since treview can't side scroll
 	FILE* s = fopen("viewer_submesh.txt","w");
-	for(u32 i=0;i<m->getMeshBufferCount();i++)
+	for(u32 i=0;i<((scene::CM2Mesh*)(m))->Skins[((scene::CM2Mesh*)(m))->SkinID].Submeshes.size();i++)
     {  
 	  // Create String handlers
       std::string info = "Submesh ";
@@ -251,14 +251,14 @@ void loadModel(const c8* fn)
 	  std::ostringstream SubMeshMode;
 	  std::ostringstream Order;
 	  std::ostringstream Block;
-	  std::ostringstream Unknown;
+	  std::ostringstream RootBone;
 	  std::ostringstream Radius;
 	  std::ostringstream ZDepth;
 	  // Slip titles into handlers
 	  SubMeshMode<< "  Mode:";
 	  Order<< " Order:";
 	  Block<< " Block:";
-	  Unknown<< " UnknownFlag:";
+	  RootBone<< " RootBone:";
 	  Radius<< " Radius:";
 	  ZDepth<< "Depth, Back:";
 	  number<<  i;
@@ -269,15 +269,13 @@ void loadModel(const c8* fn)
       info = "Texture: ";
 	  fwrite(info.c_str(),1,info.size(),s); // print to file
 	  fseek(s,1,true); // Insert space in File
-	  irr::io::SNamedPath name;
       // Get texture path and name
-	  name = m->getMeshBuffer(i)->getMaterial().getTexture(0)->getName();
-	  info = name.getInternalName().c_str();
+	  info = ((scene::CM2Mesh*)(m))->Textures[((scene::CM2Mesh*)(m))->Skins[((scene::CM2Mesh*)(m))->SkinID].Submeshes[i].Textures[0].Path].c_str();
 	  fwrite(info.c_str(),1,info.size(),s); // print to file
 	  fseek(s,1,true); // Isert space in File
 
       info = "Material Type: ";
-      switch(((scene::CM2Mesh*)(m))->BufferMap[i].blend)
+      switch(((scene::CM2Mesh*)(m))->Skins[((scene::CM2Mesh*)(m))->SkinID].Submeshes[i].Textures[0].BlendFlag)
       {
 	  case 0:
           info += "SOLID";
@@ -302,35 +300,35 @@ void loadModel(const c8* fn)
 		  break;
       }
 	  fwrite(info.c_str(),1,info.size(),s); 
-      SubMeshMode<< ((scene::CM2Mesh*)(m))->BufferMap[i].Mode; //get submesh's mode
+      SubMeshMode<< ((scene::CM2Mesh*)(m))->Skins[((scene::CM2Mesh*)(m))->SkinID].Submeshes[i].Textures[0].Mode; //get submesh's mode
 	  std::string Mode = SubMeshMode.str();
 	  fwrite(Mode.c_str(),1,Mode.size(),s); // print to file
 	  fseek(s,1,true); // Isert space in File
-	  Order<< ((scene::CM2Mesh*)(m))->BufferMap[i].order;
-	  Block<< ((scene::CM2Mesh*)(m))->BufferMap[i].block;
-	  Unknown<< ((scene::CM2Mesh*)(m))->BufferMap[i].unknown;
-	  Radius<< ((scene::CM2Mesh*)(m))->BufferMap[i].Radius;
-	  ZDepth<< ((scene::CM2Mesh*)(m))->BufferMap[i].Back;
-	  ZDepth<< "Front,";
-	  ZDepth<< ((scene::CM2Mesh*)(m))->BufferMap[i].Front;
-	  ZDepth<< "Middle,";
-	  ZDepth<< ((scene::CM2Mesh*)(m))->BufferMap[i].Middle;
-	  std::string order = Order.str();
+	  //Order<< ((scene::CM2Mesh*)(m))->BufferMap[i].order;
+	  Block<< ((scene::CM2Mesh*)(m))->Skins[((scene::CM2Mesh*)(m))->SkinID].Submeshes[i].Textures[0].Block;
+	  RootBone<< ((scene::CM2Mesh*)(m))->BufferMap[i].unknown;
+	  Radius<< ((scene::CM2Mesh*)(m))->Skins[((scene::CM2Mesh*)(m))->SkinID].Submeshes[i].Radius;
+	  //ZDepth<< ((scene::CM2Mesh*)(m))->BufferMap[i].Back;
+	  //ZDepth<< "Front,";
+	  //ZDepth<< ((scene::CM2Mesh*)(m))->BufferMap[i].Front;
+	  //ZDepth<< "Middle,";
+	  //ZDepth<< ((scene::CM2Mesh*)(m))->BufferMap[i].Middle;
+	  //std::string order = Order.str();
 	  std::string block = Block.str();
-	  std::string unKnown = Unknown.str();
+	  std::string bone = RootBone.str();
 	  std::string radius = Radius.str();
-	  std::string zdepth = ZDepth.str();
-	  fwrite(order.c_str(),1,order.size(),s);  // print to file
-	  fseek(s,1,true); // Isert space in File
+	  //std::string zdepth = ZDepth.str();
+	  //fwrite(order.c_str(),1,order.size(),s);  // print to file
+	 // fseek(s,1,true); // Isert space in File
 	  fwrite(block.c_str(),1,block.size(),s);  // print to file
 	  fseek(s,1,true); // Isert space in File
-	  fwrite(unKnown.c_str(),1,unKnown.size(),s); // print to file
+	  fwrite(bone.c_str(),1,bone.size(),s); // print to file
 	  fseek(s,1,true); // Isert space in File
 	  fwrite(radius.c_str(),1,radius.size(),s); // print to file
 	  fseek(s,1,true); // Isert space in File
-	  fwrite(zdepth.c_str(),1,zdepth.size(),s); // print to file
-	  fseek(s,1,true); // Isert space in File
-      info = "FogEnable: ";
+	  //fwrite(zdepth.c_str(),1,zdepth.size(),s); // print to file
+	  //fseek(s,1,true); // Isert space in File
+      /*info = "FogEnable: ";
       info += m->getMeshBuffer(i)->getMaterial().FogEnable?"true":"false";
 	  fwrite(info.c_str(),1,info.size(),s); // print to file
 	  fseek(s,1,true); // Isert space in File
@@ -338,9 +336,9 @@ void loadModel(const c8* fn)
       info += m->getMeshBuffer(i)->getMaterial().BackfaceCulling?"true":"false";
 	  fwrite(info.c_str(),1,info.size(),s); // print to file
 	  fseek(s,1,true); // Isert space in File
-	  std::ostringstream flag;
+	  */std::ostringstream flag;
 	  flag<< "RenderFlag: ";
-      flag<< ((scene::CM2Mesh*)(m))->BufferMap[i].flag;
+      flag<< ((scene::CM2Mesh*)(m))->Skins[((scene::CM2Mesh*)(m))->SkinID].Submeshes[i].Textures[0].RenderFlag;
 	  std::string RFlag = flag.str();
 	  fwrite(RFlag.c_str(),1,RFlag.size(),s); // print to file
 	  fseek(s,1,true); // Isert space in File
