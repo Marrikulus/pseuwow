@@ -203,7 +203,8 @@ namespace scene
 			bool animated;     
 			u16 RenderFlag; 
 			u16 BlendFlag;
-			u16 Mode;
+			u16 shaderType;   // actualy 2 u8 shader flags
+			u16 Mode;         // helps indicate shader
 			u16 Block; // = some sort of render flag indicating submesh grouping&order
 			//pointers to animations
 			u16 VertexColor;  // needs to point directly into cm2mesh::VertexColor or =-1 for no color
@@ -214,7 +215,9 @@ namespace scene
 			u32 MeshPart;             // indcates head or hand or other parts.  Could do this as a string
 			u16 RootBone;             // index to bone/joint this submesh attaches to
 			float Radius;
+			float Distance;           // distance between built in camera and submeshe's nearest vertex
 			core::stringc UniqueName; // id for the submesh incase submesh's geometry exists in multiple .skins.  Id should look like StartVertex_EndVertex.  maybe list bones for this submesh too
+			u16 LoaderIndex; // index to this submesh in the loaders array rather than in this mesh's array
 			irr::core::array <texture> Textures; // this submesh's texture descriptions (should be limited to 3)
 		};
 		struct skin{

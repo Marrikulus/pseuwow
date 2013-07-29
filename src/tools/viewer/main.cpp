@@ -254,6 +254,7 @@ void loadModel(const c8* fn)
 	  std::ostringstream RootBone;
 	  std::ostringstream Radius;
 	  std::ostringstream ZDepth;
+	  std::ostringstream Dist;
 	  // Slip titles into handlers
 	  SubMeshMode<< "  Mode:";
 	  Order<< " Order:";
@@ -261,6 +262,7 @@ void loadModel(const c8* fn)
 	  RootBone<< " RootBone:";
 	  Radius<< " Radius:";
 	  ZDepth<< "Depth, Back:";
+	  Dist<< "Distance: ";
 	  number<<  i;
 	  // Put the data into the Handlers and Print it to the File
 	  info += number.str();
@@ -306,8 +308,9 @@ void loadModel(const c8* fn)
 	  fseek(s,1,true); // Isert space in File
 	  //Order<< ((scene::CM2Mesh*)(m))->BufferMap[i].order;
 	  Block<< ((scene::CM2Mesh*)(m))->Skins[((scene::CM2Mesh*)(m))->SkinID].Submeshes[i].Textures[0].Block;
-	  RootBone<< ((scene::CM2Mesh*)(m))->BufferMap[i].unknown;
+	  RootBone<< ((scene::CM2Mesh*)(m))->Skins[((scene::CM2Mesh*)(m))->SkinID].Submeshes[i].RootBone;         //BufferMap[i].unknown;
 	  Radius<< ((scene::CM2Mesh*)(m))->Skins[((scene::CM2Mesh*)(m))->SkinID].Submeshes[i].Radius;
+	  Dist<< ((scene::CM2Mesh*)(m))->Skins[((scene::CM2Mesh*)(m))->SkinID].Submeshes[i].Distance;
 	  //ZDepth<< ((scene::CM2Mesh*)(m))->BufferMap[i].Back;
 	  //ZDepth<< "Front,";
 	  //ZDepth<< ((scene::CM2Mesh*)(m))->BufferMap[i].Front;
@@ -317,6 +320,7 @@ void loadModel(const c8* fn)
 	  std::string block = Block.str();
 	  std::string bone = RootBone.str();
 	  std::string radius = Radius.str();
+	  std::string distance = Dist.str();
 	  //std::string zdepth = ZDepth.str();
 	  //fwrite(order.c_str(),1,order.size(),s);  // print to file
 	 // fseek(s,1,true); // Isert space in File
@@ -325,6 +329,8 @@ void loadModel(const c8* fn)
 	  fwrite(bone.c_str(),1,bone.size(),s); // print to file
 	  fseek(s,1,true); // Isert space in File
 	  fwrite(radius.c_str(),1,radius.size(),s); // print to file
+	  fseek(s,1,true); // Isert space in File
+	  fwrite(distance.c_str(),1,distance.size(),s); // print to file
 	  fseek(s,1,true); // Isert space in File
 	  //fwrite(zdepth.c_str(),1,zdepth.size(),s); // print to file
 	  //fseek(s,1,true); // Isert space in File
@@ -353,11 +359,11 @@ void loadModel(const c8* fn)
 	{
 		//scene::CAnimatedMeshSceneNode* null;
 		scene::IAnimatedMeshSceneNode* animModel = Device->getSceneManager()->addAnimatedMeshSceneNode(m);
-		animModel->setAnimationSpeed(1000);
-        animModel->setM2Animation(0);
 		core::array<scene::IBoneSceneNode*> ChildBoneSceneNodes;
 		((scene::CM2Mesh*)(m))->createJoints(ChildBoneSceneNodes, animModel, Device->getSceneManager());
 		((scene::CM2Mesh*)(m))->LinkChildMeshes(animModel, Device->getSceneManager(), ChildBoneSceneNodes); // link child mesh nodes
+		animModel->setAnimationSpeed(1000);
+        animModel->setM2Animation(0);
 		Model = animModel;
 		ChildBoneSceneNodes.clear();
 	}

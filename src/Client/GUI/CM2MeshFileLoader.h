@@ -114,8 +114,8 @@ struct ModelViewSubmesh { //Curse you BLIZZ for not using numofs here
 };
 
 struct TextureUnit{
-    u16 Flags;
-    s16 renderOrder;
+    u16 Flags;         // 2 u8 first is texture animation 0=true, second flag is some sort of submesh grouping
+    s16 renderOrder;   // 2 more u8 indicating what shaders to use
     u16 submeshIndex1, submeshIndex2;
     s16 colorIndex;
     u16 renderFlagsIndex;
@@ -298,13 +298,71 @@ private:
     core::array<scene::ISkinnedMesh::SJoint> M2Joints;
 
 
-	void sortSizeBracketByMode (int b, int B, core::array<CM2Mesh::submesh> &Submesh) // b=bracket start, B=bracket end, s=skin index
+	void sortDistance(core::array<CM2Mesh::submesh> &Submesh)
+	{
+		CM2Mesh::submesh temp;
+		for (int i = 0; i < Submesh.size()-1; i++) 
+		{
+			for (u16 j = i+1; j < Submesh.size(); j++)
+			{
+				if (Submesh[i].Distance < Submesh[j].Distance)
+				{
+					temp = Submesh[i];
+					Submesh[i] = Submesh[j];
+					Submesh[j] = temp;
+				}
+			}
+		}
+	}
+
+	void dropDecalsToTheirBackdrops (core::array<CM2Mesh::submesh> &Submeshes, u16 skin)
+	{
+		for (int i=0; i<Submeshes.size(); i++)
+		{
+			 if (Submeshes[i].Textures[0].shaderType == 2) // if decal
+			 {
+				  s16 index = i-1; // index to previous element
+				  while (index >= 0)
+				  {
+					   bool move = false;  // if this becomes true decal will be moved to index+1
+					   if (Submeshes[index].Textures[0].BlendFlag < 2) // skip/ignore other effects
+					   {
+						   float radius = M2MSkins[skin].M2MSubmeshes[index].Radius;  // AnimatedMesh->SkinID
+							//  Only if decal's center of mass is between the other element's top and bottom test for other overlaps
+							if (M2MSkins[skin].M2MSubmeshes[i].CenterOfMass.Y > M2MSkins[skin].M2MSubmeshes[index].CenterOfMass.Y-radius && M2MSkins[skin].M2MSubmeshes[i].CenterOfMass.Y < M2MSkins[skin].M2MSubmeshes[index].CenterOfMass.Y+radius)
+							{ 
+									// test x overlap
+									if (M2MSkins[skin].M2MSubmeshes[i].CenterOfMass.X > M2MSkins[skin].M2MSubmeshes[index].CenterOfMass.X-radius && M2MSkins[skin].M2MSubmeshes[i].CenterOfMass.X < M2MSkins[skin].M2MSubmeshes[index].CenterOfMass.X+radius)
+									{
+										move = true;
+									}
+									// test z overlap;
+									if (M2MSkins[skin].M2MSubmeshes[i].CenterOfMass.Z > M2MSkins[skin].M2MSubmeshes[index].CenterOfMass.Z-radius && M2MSkins[skin].M2MSubmeshes[i].CenterOfMass.Z < M2MSkins[skin].M2MSubmeshes[index].CenterOfMass.Z+radius)
+									{
+										move = true;
+								 }
+							}
+					   }
+					   if (move == true)
+					   {
+							CM2Mesh::submesh temp = Submeshes[i];
+							Submeshes.erase(i);
+							Submeshes.insert(temp, index+1);
+							index = -1; // the decal was put in place so the loop can end now so we can find the next decal
+					   }
+					   index--; // move the index back an element
+				  }
+			 }
+		}
+	}
+
+	void sortSizeBracketByMode (core::array<CM2Mesh::submesh> &Submesh) // b=bracket start, B=bracket end, s=skin index
 	{
 		CM2Mesh::submesh temp;
 		//CM2Mesh::BufferInfo temp;
-		for (int i = b; i <= B; i++) 
+		for (int i = 0; i < Submesh.size()-1; i++) 
 		{
-			for (u16 j = b+1; j <= B; j++)
+			for (u16 j = i+1; j < Submesh.size(); j++)
 			{/*
 				if (AnimatedMesh->BufferMap[i].Mode > AnimatedMesh->BufferMap[j].Mode)
 				{
@@ -324,13 +382,13 @@ private:
 	}
 
 
-	void sortModeByBlock(int b, int B, core::array<CM2Mesh::submesh> &Submesh) // b=bracket start, B=bracket end, s=skin index
+	void sortModeByBlock(core::array<CM2Mesh::submesh> &Submesh) // b=bracket start, B=bracket end, s=skin index
 	{
 		CM2Mesh::submesh temp;
 		//CM2Mesh::BufferInfo temp;
-		for (int i = b; i <= B; i++) 
+		for (int i = 0; i <= Submesh.size()-1; i++) 
 		{
-			for (u16 j = b+1; j <= B; j++)
+			for (u16 j = i+1; j < Submesh.size(); j++)
 			{
 				// if they are the same mode sort by block
 				/*if (AnimatedMesh->BufferMap[i].Mode == AnimatedMesh->BufferMap[j].Mode && AnimatedMesh->BufferMap[i].block > AnimatedMesh->BufferMap[j].block)

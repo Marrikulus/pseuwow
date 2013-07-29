@@ -709,8 +709,9 @@ void CM2MeshFileLoader::BuildANewSubMesh(CM2Mesh * CurrentMesh, u32 v, u32 i)
             MeshBuffer->getMaterial().Lighting=(renderflags & 0x01)?false:true;
             MeshBuffer->getMaterial().FogEnable=(renderflags & 0x02)?false:true;
             MeshBuffer->getMaterial().BackfaceCulling=(renderflags & 0x04)?false:true;
+			//MeshBuffer->getMaterial().setFlag(video::EMF_ZBUFFER, (renderflags & 0x10)?false:true);
 			MeshBuffer->getMaterial().setFlag(video::EMF_ZWRITE_ENABLE, (renderflags & 0x10)?false:true);
-            //We have a problem here
+            //We have a problem here      zwrite or ztest?
             //             MeshBuffer->getMaterial().ZBuffer=(renderflags & 0x10)?video::ECFN_LESS:video::ECFN_LESSEQUAL;
 
             switch(M2MRenderFlags[M2MSkins[v].M2MTextureUnit[j].renderFlagsIndex].blending)
@@ -858,7 +859,8 @@ for(u16 S = 0; S < M2MSkins.size(); S++)
 {
 	CM2Mesh::skin skin;
 	core::array<CM2Mesh::submesh> sky;
-	core::array<CM2Mesh::submesh> ground;
+	core::array<CM2Mesh::submesh> scene;
+	
 	AnimatedMesh->Skins.push_back(skin); // add an empty skin
 	AnimatedMesh->Skins[S].ID = S ; // 00.skin will be Skins[0]
 	for(u16 s = 0; s < M2MSkins[S].M2MSubmeshes.size(); s++)
@@ -867,8 +869,9 @@ for(u16 S = 0; S < M2MSkins.size(); S++)
 		//AnimatedMesh->Skins[S].Submeshes.push_back(Submesh); // store a blank submesh
 		Submesh.MeshPart = M2MSkins[S].M2MSubmeshes[s].meshpartId; // AnimatedMesh->Skins[S].Submeshes.getLast().
 		// Store parent bone for submesh so we can link submesh to bone
-		Submesh.RootBone = M2MBoneLookupTable[M2MSkins[S].M2MSubmeshes[s].unk4]; //M2MBoneLookupTable[M2MSkins[S].M2MSubmeshes[s].unk4];
+		Submesh.RootBone = M2MBoneLookupTable[M2MSkins[S].M2MSubmeshes[s].unk4]; // M2MSkins[S].M2MSubmeshes[s].unk4;
 		Submesh.Radius = M2MSkins[S].M2MSubmeshes[s].Radius;
+		Submesh.LoaderIndex = s; // save an index to this submesh's current location so if this element is reordered we can still access its data in this loader
 		// vertex range should be the same for all instances of a submesh regardless of current skin so 
 		// using it to name submeshes is a good way to prevent duplication while using multiple skins
 		std::ostringstream vertrange;
@@ -877,8 +880,22 @@ for(u16 S = 0; S < M2MSkins.size(); S++)
 		vertrange<< "_";
 		u16 endvertrange = M2MSkins[S].M2MSubmeshes[s].ofsVertex+M2MSkins[S].M2MSubmeshes[s].nVertex;
 		vertrange<< endvertrange;
-		std::string vertstring = vertrange.str();
-		Submesh.UniqueName = vertstring.c_str(); // save the submesh name
+		Submesh.UniqueName = vertrange.str().c_str(); // save the submesh name
+		
+		// get distance from camera
+		float closestDistance = 100000000.0f; //Arbitraty large number
+		core::vector3df pos(11.11f,2.44f,-0.03f); //The position of the camera. To compare with.
+		for (int j = M2MSkins[S].M2MSubmeshes[s].ofsVertex;j < M2MSkins[S].M2MSubmeshes[s].ofsVertex + M2MSkins[S].M2MSubmeshes[s].nVertex; j++) // loop through vertexes for this submesh
+		{
+			core::vector3df v = M2MVertices[j].pos - pos;
+			float dist = (v.X * v.X) + (v.Y * v.Y) + (v.Z * v.Z); //Squared distance
+			if (dist < closestDistance)
+			{
+				closestDistance = dist;
+			}
+		}
+		Submesh.Distance = closestDistance; // distance between camera and closest vertex in submesh
+
 		// later when activating skins check if a mesh exists by this name and reuse it updating its data to match current skin
 				
 		// get all texture data for this submesh
@@ -894,6 +911,7 @@ for(u16 S = 0; S < M2MSkins.size(); S++)
 					Texture.animated = true;}
 				else{
 					Texture.animated = false;}
+				Texture.shaderType = M2MSkins[S].M2MTextureUnit[t].renderOrder;
 				Texture.RenderFlag = M2MRenderFlags[M2MSkins[S].M2MTextureUnit[t].renderFlagsIndex].flags;
 				Texture.BlendFlag = M2MRenderFlags[M2MSkins[S].M2MTextureUnit[t].renderFlagsIndex].blending;
 				Texture.Mode = M2MSkins[S].M2MTextureUnit[t].Mode;
@@ -906,26 +924,26 @@ for(u16 S = 0; S < M2MSkins.size(); S++)
 				Submesh.Textures.push_back(Texture);
 			}
 		}
-		if (Submesh.Radius > 5) // if this submesh is big
+		
+		if (Submesh.Radius >= 70) // skysphere
 		{
 			sky.push_back(Submesh);          
 		}
-		if (Submesh.Radius <= 5) // if this submesh is normal
+		if (Submesh.Radius < 70) // if this submesh is big
 		{
-			ground.push_back(Submesh);          
+			scene.push_back(Submesh); 
 		}
 	}
 	
-	//sortRadius (0, SubMeshLookUps.size()-1, S);
-	sortSizeBracketByMode (0, sky.size()-1, sky);
-	sortModeByBlock(0, sky.size()-1, sky);
-	sortSizeBracketByMode (0, ground.size()-1, ground);
-	sortModeByBlock(0, ground.size()-1, ground);
+	sortDistance(sky);
+	sortDistance(scene);
 	for (u16 t = 0; t <sky.size(); t++){
 		AnimatedMesh->Skins[S].Submeshes.push_back(sky[t]);}
-	for (u16 t = 0; t <ground.size(); t++){
-		AnimatedMesh->Skins[S].Submeshes.push_back(ground[t]);}
+	for (u16 t = 0; t <scene.size(); t++){
+		AnimatedMesh->Skins[S].Submeshes.push_back(scene[t]);}
 	sky.clear();
+	scene.clear();
+	dropDecalsToTheirBackdrops(AnimatedMesh->Skins[S].Submeshes, S);
 }
 
 // set default skin for the mesh
@@ -1186,23 +1204,25 @@ if (std::mismatch(prefix.begin(), prefix.end(), MeshFileName.begin()).first == p
 {
 	u32 v = 0; // currently I am limiting skin usage to skin 0
 	AnimatedMesh->SkinID = v; // remove this later as skinid is set when storing globals in the mesh
-	for (u32 i = 0; i < M2MSkins[v].M2MSubmeshes.size(); i++)
+	//for (u32 i = 0; i < M2MSkins[v].M2MSubmeshes.size(); i++)
+	for (u32 i = 0; i < AnimatedMesh->Skins[v].Submeshes.size(); i++)
 	{
 		// will need to see if a mesh with this UniqueName is already loaded to avoid multiple copies
 		CM2Mesh *CurrentChildMesh = new scene::CM2Mesh(); // make a blank mesh
 		CopyAnimationsToMesh(CurrentChildMesh);
-		BuildANewSubMesh(CurrentChildMesh, v, i); // assemble childmesh
+		//BuildANewSubMesh(CurrentChildMesh, v, i); // assemble childmesh
+		BuildANewSubMesh(CurrentChildMesh, v, AnimatedMesh->Skins[v].Submeshes[i].LoaderIndex); // assemble childmesh
 		Device->getSceneManager()->getMeshManipulator()->flipSurfaces(CurrentChildMesh);
 		
 		// vertex range should be the same for all instances of a submesh regardless of current skin so 
 		// using it to name submeshes is a good way to prevent duplication while using multiple skins
 		// rename it with a unique name.  UniqueName has already ben generated and stored in the CM2Mesh instance
-		std::string NewName = AnimatedMesh->Skins[v].Submeshes[i].UniqueName.c_str();
+		//std::string NewName = AnimatedMesh->Skins[v].Submeshes[i].UniqueName.c_str();
 
-		Device->getSceneManager()->getMeshCache()->renameMesh(CurrentChildMesh, NewName.c_str()); // give the current child mesh a uniqe name
+		Device->getSceneManager()->getMeshCache()->renameMesh(CurrentChildMesh, AnimatedMesh->Skins[v].Submeshes[i].UniqueName);//NewName.c_str()); // give the current child mesh a uniqe name
 		CurrentChildMesh->finalize(); // do this after this submesh is fully generated
 		// Do I need to add this mesh to meshcache?
-		Device->getSceneManager()->getMeshCache()->addMesh(NewName.c_str(), CurrentChildMesh);
+		Device->getSceneManager()->getMeshCache()->addMesh(AnimatedMesh->Skins[v].Submeshes[i].UniqueName, CurrentChildMesh); //NewName.c_str()
 	}
 }
 else

@@ -1487,10 +1487,12 @@ void CM2Mesh::LinkChildMeshes (IAnimatedMeshSceneNode *ParentMeshNode, ISceneMan
 	for(u16 s=0; s < Skins[CM2Mesh::SkinID].Submeshes.size(); s++)
 	{
 		//UI_ChildMeshName+=Skins[skinID].Submeshes[s].UniqueName.c_str();
-		
+
+
 		// Create a node for a child mesh 
 		scene::IAnimatedMeshSceneNode* ChildMeshNode = smgr->addAnimatedMeshSceneNode(smgr->getMeshCache()->getMeshByName(Skins[SkinID].Submeshes[s].UniqueName.c_str()));
-		
+
+
 		// activate this childmesh's animations
 		ChildMeshNode->setAnimationSpeed(1000);
         ChildMeshNode->setM2Animation(0);
@@ -1510,21 +1512,26 @@ void CM2Mesh::LinkChildMeshes (IAnimatedMeshSceneNode *ParentMeshNode, ISceneMan
 		// Set render pass if nessasary
 		// SkyBox pass
 
+
 		/*if (Skins[CM2Mesh::SkinID].Submeshes[s].Radius > 6)  // 5 would be a more logical number
 		{
 			//smgr->registerNodeForRendering(ChildMeshNode, ESNRP_NONE);    // Clear default passes
 			smgr->registerNodeForRendering(ChildMeshNode, ESNRP_SKY_BOX); // Set new pass
 		}*/
-		
+
+
 		// ToDo:: apply current view data when we handle all .skin files.  Set children that are not in current view to fully transparent and set textures. Handle texture animation
 
+
 		last = ChildMeshNode;
-		
+
+
 		// erase data portion we nolonger need in prep for next pass
 		//UI_ChildMeshName.erase (UI_ChildMeshName.begin()+Skins[skinID].Submeshes[s].VertexRange.size(), UI_ChildMeshName.end());
 	}
 	smgr->getParameters()->setAttribute(scene::ALLOW_ZWRITE_ON_TRANSPARENT, true);
 }
+
 
 
 
