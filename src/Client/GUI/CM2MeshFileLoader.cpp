@@ -311,6 +311,49 @@ void CM2MeshFileLoader::ReadLights()
 }
 
 
+void CM2MeshFileLoader::ReadCameras()
+{
+    if (!M2MCameras.empty())
+    {
+        M2MCameras.clear();
+    }
+    //read Cameras
+    MeshFile->seek(header.Cameras.ofs);
+
+    for(u32 i=0;i<header.Cameras.num;i++)
+    {
+        Camera tempCamera;
+        MeshFile->read(&tempCamera,16);
+        ReadABlock(tempCamera.CamPosTranslation,ABDT_FLOAT,9); // 3 vector3df per CamPosTranslation element so 9 floats
+	    MeshFile->seek(header.Cameras.ofs+36);
+        MeshFile->read(&tempCamera.Position,12);
+	    ReadABlock(tempCamera.CamTargetTranslation,ABDT_FLOAT,9); // 3 vector3df per CamTargetTranslation element so 9 floats
+	    MeshFile->seek(header.Cameras.ofs+68);
+        MeshFile->read(&tempCamera.Target,12);
+        ReadABlock(tempCamera.Scale,ABDT_FLOAT,3);
+    }
+}
+
+
+void CM2MeshFileLoader::ReadUVAnimations()
+{
+    if (!M2MUVAnimations.empty())
+    {
+        M2MUVAnimations.clear();
+    }
+    //read Teture UVAnimations
+    MeshFile->seek(header.TexAnims.ofs);
+    for(u32 i=0;i<header.TexAnims.num;i++)
+    {
+      UVAnimation tempUV;
+      ReadABlock(tempUV.Translation,ABDT_FLOAT,3);
+      ReadABlock(tempUV.Rotation,ABDT_SHORT,4);
+      ReadABlock(tempUV.Scaling,ABDT_FLOAT,3);
+      M2MUVAnimations.push_back(tempUV);
+    }
+}
+
+
 void CM2MeshFileLoader::ReadAnimationData()
 {
 //     //Global Sequences. This is global data
@@ -541,7 +584,7 @@ void CM2MeshFileLoader::CopyAnimationsToMesh(CM2Mesh * CurrentMesh)
 
 
 	scene::CM2Mesh::SJoint* Joint;
-	for(u32 i=0;i<M2MBones.size();i++)
+	for(u32 i=0;i<M2MBones.size();i++)  // should use a toggle to set bone range 0 to totalbones for wholemesh or sumesh.startbone to submesh.endbone
 	{
 	  if(M2MBones[i].parentBone == -1)
 	  {

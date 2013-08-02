@@ -195,6 +195,12 @@ struct Bone{
     core::vector3df PivotPoint;
 };
 
+struct UVAnimation{
+	AnimBlock Translation;
+	AnimBlock Rotation;  // these are shorts in m2 check how rotation is done for bones reading at line 256 as that is shorts too. animblock uses floats
+	AnimBlock Scaling;
+};
+
 struct VertexColor{
     AnimBlock Colors;
     AnimBlock Alpha;
@@ -212,6 +218,19 @@ struct Light{
     AnimBlock AttenuationStart;
     AnimBlock AttenuationEnd;
     AnimBlock Unknown;
+};
+
+
+struct Camera{
+	u32 Type;    // -1 = flyby, 0 = portrait, 1 = caracter info.  Is both type and index into cam lookup table 
+	float FOV;   // multiply by 35 to get degrees
+	float FarClip;
+	float NearClip;
+	AnimBlock CamPosTranslation;
+	core::vector3df Position;
+	AnimBlock CamTargetTranslation;
+	core::vector3df Target;
+	AnimBlock Scale;
 };
 
 
@@ -249,6 +268,8 @@ private:
     void ReadBones();
 	void ReadColors();
 	void ReadLights();
+	void ReadCameras();
+	void ReadUVAnimations();
     void ReadVertices();
     void ReadTextureDefinitions();
     void ReadAnimationData();
@@ -273,7 +294,9 @@ private:
     //SSkinMeshBuffer* MeshBuffer;
     //Taken from the Model file, thus m2M*
 	core::array<Light> M2MLights;
+	core::array<Camera> M2MCameras;
 	core::array<VertexColor> M2MVertexColor;
+	core::array<UVAnimation> M2MUVAnimations; // animations for textures
     core::array<ModelVertex> M2MVertices;
     core::array<u16> M2MIndices;
     core::array<u16> M2MTriangles;
@@ -325,7 +348,7 @@ private:
 				  while (index >= 0)
 				  {
 					   bool move = false;  // if this becomes true decal will be moved to index+1
-					   if (Submeshes[index].Textures[0].BlendFlag < 2) // skip/ignore other effects
+					   if (Submeshes[index].Textures[0].BlendFlag < 2) // skip/ignore other effects // wrong need to move decal just behind any other efects if they are found first then continue testing
 					   {
 						   float radius = M2MSkins[skin].M2MSubmeshes[index].Radius;  // AnimatedMesh->SkinID
 							//  Only if decal's center of mass is between the other element's top and bottom test for other overlaps
