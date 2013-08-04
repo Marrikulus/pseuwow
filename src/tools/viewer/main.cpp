@@ -249,7 +249,7 @@ void loadModel(const c8* fn)
       std::string info = "Submesh ";
 	  std::ostringstream number;
 	  std::ostringstream SubMeshMode;
-	  std::ostringstream Order;
+	  std::ostringstream ShaderType; // is it a decal? etc...
 	  std::ostringstream Block;
 	  std::ostringstream RootBone;
 	  std::ostringstream Radius;
@@ -257,7 +257,7 @@ void loadModel(const c8* fn)
 	  std::ostringstream Dist;
 	  // Slip titles into handlers
 	  SubMeshMode<< "  Mode:";
-	  Order<< " Order:";
+	  ShaderType<< " ShaderType:";
 	  Block<< " Block:";
 	  RootBone<< " RootBone:";
 	  Radius<< " Radius:";
@@ -306,7 +306,7 @@ void loadModel(const c8* fn)
 	  std::string Mode = SubMeshMode.str();
 	  fwrite(Mode.c_str(),1,Mode.size(),s); // print to file
 	  fseek(s,1,true); // Isert space in File
-	  //Order<< ((scene::CM2Mesh*)(m))->BufferMap[i].order;
+	  ShaderType<< ((scene::CM2Mesh*)(m))->Skins[((scene::CM2Mesh*)(m))->SkinID].Submeshes[i].Textures[0].shaderType; //((scene::CM2Mesh*)(m))->BufferMap[i].order;
 	  Block<< ((scene::CM2Mesh*)(m))->Skins[((scene::CM2Mesh*)(m))->SkinID].Submeshes[i].Textures[0].Block;
 	  RootBone<< ((scene::CM2Mesh*)(m))->Skins[((scene::CM2Mesh*)(m))->SkinID].Submeshes[i].RootBone;         //BufferMap[i].unknown;
 	  Radius<< ((scene::CM2Mesh*)(m))->Skins[((scene::CM2Mesh*)(m))->SkinID].Submeshes[i].Radius;
@@ -316,14 +316,14 @@ void loadModel(const c8* fn)
 	  //ZDepth<< ((scene::CM2Mesh*)(m))->BufferMap[i].Front;
 	  //ZDepth<< "Middle,";
 	  //ZDepth<< ((scene::CM2Mesh*)(m))->BufferMap[i].Middle;
-	  //std::string order = Order.str();
+	  std::string TypeOfShader = ShaderType.str();
 	  std::string block = Block.str();
 	  std::string bone = RootBone.str();
 	  std::string radius = Radius.str();
 	  std::string distance = Dist.str();
 	  //std::string zdepth = ZDepth.str();
-	  //fwrite(order.c_str(),1,order.size(),s);  // print to file
-	 // fseek(s,1,true); // Isert space in File
+	  fwrite(TypeOfShader.c_str(),1,TypeOfShader.size(),s);  // print to file
+	  fseek(s,1,true); // Isert space in File
 	  fwrite(block.c_str(),1,block.size(),s);  // print to file
 	  fseek(s,1,true); // Isert space in File
 	  fwrite(bone.c_str(),1,bone.size(),s); // print to file

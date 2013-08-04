@@ -344,38 +344,55 @@ private:
 		{
 			 if (Submeshes[i].Textures[0].shaderType == 2) // if decal
 			 {
-				  s16 index = i-1; // index to previous element
-				  while (index >= 0)
-				  {
-					   bool move = false;  // if this becomes true decal will be moved to index+1
-					   if (Submeshes[index].Textures[0].BlendFlag < 2) // skip/ignore other effects // wrong need to move decal just behind any other efects if they are found first then continue testing
-					   {
-						   float radius = M2MSkins[skin].M2MSubmeshes[index].Radius;  // AnimatedMesh->SkinID
-							//  Only if decal's center of mass is between the other element's top and bottom test for other overlaps
-							if (M2MSkins[skin].M2MSubmeshes[i].CenterOfMass.Y > M2MSkins[skin].M2MSubmeshes[index].CenterOfMass.Y-radius && M2MSkins[skin].M2MSubmeshes[i].CenterOfMass.Y < M2MSkins[skin].M2MSubmeshes[index].CenterOfMass.Y+radius)
-							{ 
-									// test x overlap
-									if (M2MSkins[skin].M2MSubmeshes[i].CenterOfMass.X > M2MSkins[skin].M2MSubmeshes[index].CenterOfMass.X-radius && M2MSkins[skin].M2MSubmeshes[i].CenterOfMass.X < M2MSkins[skin].M2MSubmeshes[index].CenterOfMass.X+radius)
-									{
-										move = true;
-									}
-									// test z overlap;
-									if (M2MSkins[skin].M2MSubmeshes[i].CenterOfMass.Z > M2MSkins[skin].M2MSubmeshes[index].CenterOfMass.Z-radius && M2MSkins[skin].M2MSubmeshes[i].CenterOfMass.Z < M2MSkins[skin].M2MSubmeshes[index].CenterOfMass.Z+radius)
-									{
-										move = true;
-								 }
+				s16 index = i-1; // index to previous element
+				s16 InsertHere = index; // index to insert after
+				while (index >= 0)
+				{
+					// a decal must be moved between all efects it would be accedentaly projected on and the first none effect element it can project on 
+					bool move = false;  // if this becomes true decal will be moved to index+1
+					float radius = M2MSkins[skin].M2MSubmeshes[index].Radius;  // AnimatedMesh->SkinID
+					//  Only if decal's center of mass is between the other element's top and bottom test for other overlaps
+					if (M2MSkins[skin].M2MSubmeshes[i].CenterOfMass.Y > M2MSkins[skin].M2MSubmeshes[index].CenterOfMass.Y-radius && M2MSkins[skin].M2MSubmeshes[i].CenterOfMass.Y < M2MSkins[skin].M2MSubmeshes[index].CenterOfMass.Y+radius)
+					{ 
+						bool overlap = false;
+						if (M2MSkins[skin].M2MSubmeshes[i].CenterOfMass.Y > M2MSkins[skin].M2MSubmeshes[index].CenterOfMass.Y-radius && M2MSkins[skin].M2MSubmeshes[i].CenterOfMass.Y < M2MSkins[skin].M2MSubmeshes[index].CenterOfMass.Y+radius)
+						{
+							// test x overlap
+							if (M2MSkins[skin].M2MSubmeshes[i].CenterOfMass.X > M2MSkins[skin].M2MSubmeshes[index].CenterOfMass.X-radius && M2MSkins[skin].M2MSubmeshes[i].CenterOfMass.X < M2MSkins[skin].M2MSubmeshes[index].CenterOfMass.X+radius)
+							{
+								overlap = true;
 							}
-					   }
-					   if (move == true)
-					   {
-							CM2Mesh::submesh temp = Submeshes[i];
-							Submeshes.erase(i);
-							Submeshes.insert(temp, index+1);
-							index = -1; // the decal was put in place so the loop can end now so we can find the next decal
-					   }
-					   index--; // move the index back an element
-				  }
-			 }
+							// test z overlap;
+							if (M2MSkins[skin].M2MSubmeshes[i].CenterOfMass.Z > M2MSkins[skin].M2MSubmeshes[index].CenterOfMass.Z-radius && M2MSkins[skin].M2MSubmeshes[i].CenterOfMass.Z < M2MSkins[skin].M2MSubmeshes[index].CenterOfMass.Z+radius)
+							{
+								overlap = true;
+							}
+						}
+						if (overlap == true) // If the decal can project on this element decide if the decal belongs behind or in front of it
+						{
+							if (Submeshes[index].Textures[0].BlendFlag > 2 && Submeshes[index].Textures[0].shaderType != 2) // if the element is an effect but not a decal the decal must go beneath it.
+							{
+								InsertHere = index;   // pushes the effect down 1 index and takes over its original index
+								move = true;
+							}
+							if (Submeshes[index].Textures[0].BlendFlag < 2) // if this is not an effect and the decal projects on it then we found the last possible position of this decal
+							{
+								InsertHere = index+1; // inserts decal at the index folowing this element
+								move = true;
+								// since we found the last posible location of this decal we need to end the loop so we can find the next decal
+								index = 0; 
+							}
+						}
+					}
+					if (move == true)
+					{
+						CM2Mesh::submesh temp = Submeshes[i];
+						Submeshes.erase(i);
+						Submeshes.insert(temp, InsertHere);
+					}
+					index--; // move the index back an element
+				}
+			}
 		}
 	}
 
