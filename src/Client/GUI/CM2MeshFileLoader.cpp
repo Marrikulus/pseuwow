@@ -584,7 +584,7 @@ void CM2MeshFileLoader::CopyAnimationsToMesh(CM2Mesh * CurrentMesh)
 
 
 	scene::CM2Mesh::SJoint* Joint;
-	for(u32 i=0;i<M2MBones.size();i++)  // should use a toggle to set bone range 0 to totalbones for wholemesh or sumesh.startbone to submesh.endbone
+	for(u32 i=0;i<M2MBones.size();i++)  
 	{
 	  if(M2MBones[i].parentBone == -1)
 	  {
@@ -595,6 +595,115 @@ void CM2MeshFileLoader::CopyAnimationsToMesh(CM2Mesh * CurrentMesh)
 		  ParentJoint=CurrentMesh->getAllJoints()[M2MBones[i].parentBone];
 	  }
 	  Joint=CurrentMesh->addJoint(ParentJoint);
+	  //Set Joint Name
+	  switch (M2MBones[i].SkelBoneIndex) // -1 = no name
+	  {
+		case 0: 
+		Joint->Name = "ArmL";
+		break;
+		case 1: 
+		Joint->Name = "ArmR";
+		break;
+		case 2: 
+		Joint->Name = "ShoulderL";
+		break; 
+		case 3: 
+		Joint->Name = "ShoulderR";
+		break;
+		case 4: 
+		Joint->Name = "SpineLow"; 
+		break;
+		case 5: 
+		Joint->Name = "Waist"; 
+		break;
+		case 6: 
+		Joint->Name = "Head"; 
+		break;
+		case 7: 
+		Joint->Name = "Jaw"; 
+		break;
+		case 8: 
+		Joint->Name = "IndexFingerR";
+		break;
+		case 9: 
+		Joint->Name = "MiddleFingerR"; 
+		break;
+		case 10: 
+		Joint->Name = "PinkyFingerR"; 
+		break;
+		case 11: 
+		Joint->Name = "RingFingerR"; 
+		break;
+		case 12: 
+		Joint->Name = "ThumbR"; 
+		break;
+		case 13: 
+		Joint->Name = "IndexFingerL";
+		break; 
+		case 14: 
+		Joint->Name = "MiddleFingerL"; 
+		break;
+		case 15: 
+		Joint->Name = "PinkyFingerL"; 
+		break;
+		case 16: 
+		Joint->Name = "RingFingerL"; 
+		break;
+		case 17: 
+		Joint->Name = "ThumbL"; 
+		break;
+		case 18: 
+		Joint->Name = "$BTH"; 
+		break;
+		case 19: 
+		Joint->Name = "$CSR"; 
+		break;
+		case 20: 
+		Joint->Name = "$CSL"; 
+		break;
+		case 21: 
+		Joint->Name = "_Breath"; 
+		break;
+		case 22: 
+		Joint->Name = "_Name"; 
+		break;
+		case 23: 
+		Joint->Name = "_NameMount"; 
+		break;
+		case 24: 
+		Joint->Name = "$CHD";
+		break;
+		case 25: 
+		Joint->Name = "$CCH"; 
+		break;
+		case 26: 
+		Joint->Name = "Root"; 
+		break;
+		case 27: 
+		Joint->Name = "Wheel1";
+		break;
+		case 28: 
+		Joint->Name = "Wheel2";
+		break;
+		case 29: 
+		Joint->Name = "Wheel3"; 
+		break;
+		case 30: 
+		Joint->Name = "Wheel4"; 
+		break;
+		case 31: 
+		Joint->Name = "Wheel5"; 
+		break;
+		case 32: 
+		Joint->Name = "Wheel6"; 
+		break;
+		case 33: 
+		Joint->Name = "Wheel7"; 
+		break;
+		case 34: 
+		Joint->Name = "Wheel8"; 
+		break;
+	  }
 
 	  if(M2MBones[i].translation.timestamps.size()>0)
 	  {
@@ -1231,7 +1340,7 @@ for(u32 i=0;i<M2MVertices.size();i++)
 ///////////////////////////////////////
 	
 
-CopyAnimationsToMesh(AnimatedMesh);
+CopyAnimationsToMesh(AnimatedMesh); 
 
 
 ///////////////////////////////////////
