@@ -754,7 +754,7 @@ void CM2MeshFileLoader::CopyAnimationsToMesh(CM2Mesh * CurrentMesh)
 }
 
 
-void CM2MeshFileLoader::BuildANewSubMesh(CM2Mesh * CurrentMesh, u32 v, u32 i)
+void CM2MeshFileLoader::BuildANewSubMesh(CM2Mesh * CurrentMesh, u32 v, u32 i, u32 sn)
 {
 	//Now, M2MTriangles refers to M2MIndices and not to M2MVertices.
     scene::SSkinMeshBuffer *MeshBuffer = CurrentMesh->addMeshBuffer(M2MSkins[v].M2MSubmeshes[i].meshpartId);
@@ -780,7 +780,7 @@ void CM2MeshFileLoader::BuildANewSubMesh(CM2Mesh * CurrentMesh, u32 v, u32 i)
             scene::CM2Mesh::SWeight* weight = CurrentMesh->addWeight(CurrentMesh->getAllJoints()[boneIndex]);
             weight->strength=M2MVertices[j].weights[k];
             weight->vertex_id=MeshBuffer->Vertices_Standard.size()-1;
-            weight->buffer_id=i; 
+            weight->buffer_id=sn; 
             }
 
         }
@@ -1095,7 +1095,7 @@ for(u16 S = 0; S < M2MSkins.size(); S++)
 		AnimatedMesh->Skins[S].Submeshes.push_back(scene[t]);}
 	sky.clear();
 	scene.clear();
-	dropDecalsToTheirBackdrops(AnimatedMesh->Skins[S].Submeshes, S);
+	//dropDecalsToTheirBackdrops(AnimatedMesh->Skins[S].Submeshes, S);  // disabled for now
 }
 
 // set default skin for the mesh
@@ -1363,7 +1363,7 @@ if (std::mismatch(prefix.begin(), prefix.end(), MeshFileName.begin()).first == p
 		CM2Mesh *CurrentChildMesh = new scene::CM2Mesh(); // make a blank mesh
 		CopyAnimationsToMesh(CurrentChildMesh);
 		//BuildANewSubMesh(CurrentChildMesh, v, i); // assemble childmesh
-		BuildANewSubMesh(CurrentChildMesh, v, AnimatedMesh->Skins[v].Submeshes[i].LoaderIndex); // assemble childmesh
+		BuildANewSubMesh(CurrentChildMesh, v, AnimatedMesh->Skins[v].Submeshes[i].LoaderIndex, i); // assemble childmesh
 		Device->getSceneManager()->getMeshManipulator()->flipSurfaces(CurrentChildMesh);
 		
 		// vertex range should be the same for all instances of a submesh regardless of current skin so 
@@ -1380,9 +1380,10 @@ if (std::mismatch(prefix.begin(), prefix.end(), MeshFileName.begin()).first == p
 else
 {
 	u32 v = 0;
-	for (u32 i = 0; i < M2MSkins[v].M2MSubmeshes.size(); i++)
+	//for (u32 i = 0; i < M2MSkins[v].M2MSubmeshes.size(); i++)
+	for (u32 i = 0; i < AnimatedMesh->Skins[v].Submeshes.size(); i++)
 	{
-		BuildANewSubMesh(AnimatedMesh, v, i);
+		BuildANewSubMesh(AnimatedMesh, v, AnimatedMesh->Skins[v].Submeshes[i].LoaderIndex, i); //i);
 	}
 	Device->getSceneManager()->getMeshManipulator()->flipSurfaces(AnimatedMesh);
 }

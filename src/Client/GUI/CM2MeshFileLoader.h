@@ -276,7 +276,7 @@ private:
     void ReadViewData(io::IReadFile* file);
     void ReadABlock(AnimBlock &ABlock, u8 datatype, u8 datanum);
 	void CopyAnimationsToMesh(CM2Mesh * CurrentMesh);
-	void BuildANewSubMesh(CM2Mesh * CurrentMesh, u32 v, u32 i); // v is index to current veiw and i is the index for the current submesh in this view 
+	void BuildANewSubMesh(CM2Mesh * CurrentMesh, u32 v, u32 i, u32 sn); // v is index to current veiw. i is the index to the data for the current submesh in this view. sn is the number of the Submesh we are adding to scene or mesh
 
 	IrrlichtDevice *Device;
     core::stringc Texdir;
