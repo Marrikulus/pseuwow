@@ -1012,6 +1012,7 @@ for(u16 S = 0; S < M2MSkins.size(); S++)
 	CM2Mesh::skin skin;
 	core::array<CM2Mesh::submesh> sky;
 	core::array<CM2Mesh::submesh> scene;
+	core::array<Bounds> SubmeshBounds; // boundry height/width for decal sorting
 	
 	AnimatedMesh->Skins.push_back(skin); // add an empty skin
 	AnimatedMesh->Skins[S].ID = S ; // 00.skin will be Skins[0]
@@ -1032,11 +1033,12 @@ for(u16 S = 0; S < M2MSkins.size(); S++)
 		vertrange<< "_";
 		u16 endvertrange = M2MSkins[S].M2MSubmeshes[s].ofsVertex+M2MSkins[S].M2MSubmeshes[s].nVertex;
 		vertrange<< endvertrange;
-		Submesh.UniqueName = vertrange.str().c_str(); // save the submesh name
+		Submesh.UniqueName = vertrange.str().c_str(); // save the submesh name, later when switching skins we check by this name if this submesh should be visible we reuse it updating its data for the current skin
 		
 		// get distance from camera
 		float closestDistance = 100000000.0f; //Arbitraty large number
 		core::vector3df pos(11.11f,2.44f,-0.03f); //The position of the camera. To compare with.
+		u16 nearestvertex;
 		for (int j = M2MSkins[S].M2MSubmeshes[s].ofsVertex;j < M2MSkins[S].M2MSubmeshes[s].ofsVertex + M2MSkins[S].M2MSubmeshes[s].nVertex; j++) // loop through vertexes for this submesh
 		{
 			core::vector3df v = M2MVertices[j].pos - pos;
@@ -1044,11 +1046,45 @@ for(u16 S = 0; S < M2MSkins.size(); S++)
 			if (dist < closestDistance)
 			{
 				closestDistance = dist;
+				nearestvertex = j;
 			}
 		}
 		Submesh.Distance = closestDistance; // distance between camera and closest vertex in submesh
+		Submesh.NearestVertex = nearestvertex - M2MSkins[S].M2MSubmeshes[s].ofsVertex; // index to nearest vertex in submesh's vertices 
 
-		// later when activating skins check if a mesh exists by this name and reuse it updating its data to match current skin
+
+		// get submesh bounds for this submesh
+		Bounds tempBounds; 
+		core::vector3df center = fixCoordSystem(M2MSkins[S].M2MSubmeshes[s].CenterOfMass);
+		// Get edges
+		tempBounds.Wmax = center.X;
+		tempBounds.Wmin = center.X;
+		tempBounds.Hmax = center.Y;
+		tempBounds.Hmin = center.Y;
+		for (int j = M2MSkins[S].M2MSubmeshes[s].ofsVertex; j < M2MSkins[S].M2MSubmeshes[s].ofsVertex + M2MSkins[S].M2MSubmeshes[s].nVertex-1; j++)
+		{
+			// X
+			if (M2MVertices[j].pos.X < tempBounds.Wmin)
+			{
+				tempBounds.Wmin = M2MVertices[j].pos.X;
+			}
+			if (M2MVertices[j].pos.X > tempBounds.Wmax)
+			{
+				tempBounds.Wmax = M2MVertices[j].pos.X;
+			}
+			// Y
+			if (M2MVertices[j].pos.Y < tempBounds.Hmin)
+			{
+				tempBounds.Hmin = M2MVertices[j].pos.Y;
+			}
+			if (M2MVertices[j].pos.Y > tempBounds.Hmax)
+			{
+				tempBounds.Hmax = M2MVertices[j].pos.Y;
+			}
+		}
+		SubmeshBounds.push_back(tempBounds);  // ToDo:: compensate for the camera not looking down the z axis.  generate a rotation that will make z axis aline with camera axis without damaging geomatry 
+		                                      // and apply it to each value in tempBounds to make decal positioning easyer to think about
+
 				
 		// get all texture data for this submesh
 		for (u16 t = 0; t < M2MSkins[S].M2MTextureUnit.size(); t++)
@@ -1076,26 +1112,28 @@ for(u16 S = 0; S < M2MSkins.size(); S++)
 				Submesh.Textures.push_back(Texture);
 			}
 		}
-		
-		if (Submesh.Radius >= 70) // skysphere
+		// ToDo:: only do this sorting stuf for scenes
+		// Filter submeshes into groups by size.
+		if (Submesh.Radius >= 70) // if it is a large submeshs its part of the sky
 		{
-			sky.push_back(Submesh);          
+			sky.push_back(Submesh);                  
 		}
-		if (Submesh.Radius < 70) // if this submesh is big
+		if (Submesh.Radius < 70) // if this submesh isn't to big its a normal scene element 
 		{
-			scene.push_back(Submesh); 
+			scene.push_back(Submesh);
 		}
 	}
-	
+	FixDecalDistance(scene, SubmeshBounds);
+	FixDecalDistance(sky, SubmeshBounds);
 	sortDistance(sky);
 	sortDistance(scene);
-	for (u16 t = 0; t <sky.size(); t++){
-		AnimatedMesh->Skins[S].Submeshes.push_back(sky[t]);}
-	for (u16 t = 0; t <scene.size(); t++){
+	for (u16 t = 0; t <sky.size()-1; t++){
+		if (t>0){sky[t].Distance = sky[0].Distance-t;} // distance ofset so that sequence remains correct if resorted later
+		AnimatedMesh->Skins[S].Submeshes.push_back(sky[t]);} // store data for skin/view in mesh
+	for (u16 t = 0; t <scene.size()-1; t++){
 		AnimatedMesh->Skins[S].Submeshes.push_back(scene[t]);}
 	sky.clear();
 	scene.clear();
-	//dropDecalsToTheirBackdrops(AnimatedMesh->Skins[S].Submeshes, S);  // disabled for now
 }
 
 // set default skin for the mesh
@@ -1348,7 +1386,7 @@ CopyAnimationsToMesh(AnimatedMesh);
 ///////////////////////////////////////
 
 //Loop through the submeshes  // ToDo:: keep track of triangle offsets and number so we don't duplicate submeshes that exist in multiple views/.skins and store a simplified texture list in the cm2mesh so we can swap textures by currentview flag
-std::string prefix = "UI_";
+std::string prefix = "bob"; //"UI_";
 std::string MeshFileName = Device->getFileSystem()->getFileBasename(MeshFile->getFileName().c_str(), false).c_str();
 
 if (std::mismatch(prefix.begin(), prefix.end(), MeshFileName.begin()).first == prefix.end()) // If MeshFileName begins with UI_

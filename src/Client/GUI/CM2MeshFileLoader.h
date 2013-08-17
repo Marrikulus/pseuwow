@@ -243,6 +243,15 @@ struct SkinData{
 };
 
 
+// Structure to teporarily store width & height
+struct Bounds{
+	float Wmax;
+	float Wmin;
+	float Hmax;
+	float Hmin;
+};
+
+
 class CM2MeshFileLoader : public IMeshLoader
 {
 public:
@@ -324,9 +333,9 @@ private:
 	void sortDistance(core::array<CM2Mesh::submesh> &Submesh)
 	{
 		CM2Mesh::submesh temp;
-		for (int i = 0; i < Submesh.size()-1; i++) 
+		for (int i = 0; i < Submesh.size()-2; i++) 
 		{
-			for (u16 j = i+1; j < Submesh.size(); j++)
+			for (u16 j = i+1; j < Submesh.size()-1; j++)
 			{
 				if (Submesh[i].Distance < Submesh[j].Distance)
 				{
@@ -335,6 +344,28 @@ private:
 					Submesh[j] = temp;
 				}
 			}
+		}
+	}
+
+	void FixDecalDistance (core::array<CM2Mesh::submesh> &Submeshes, core::array<Bounds> &Dimensions)
+	{
+		for (int i=0; i<Submeshes.size()-1; i++)
+		{
+			 if (Submeshes[i].Textures[0].shaderType == 2) // if decal
+			 {
+				s16 index = i-1; // index to previous element
+				//s16 InsertHere = index; // index to insert after
+				while (index >= 0)
+				{
+					if(Dimensions[Submeshes[i].LoaderIndex].Wmax <= Dimensions[Submeshes[index].LoaderIndex].Wmax && Dimensions[Submeshes[i].LoaderIndex].Wmin >= Dimensions[Submeshes[index].LoaderIndex].Wmin && Dimensions[Submeshes[i].LoaderIndex].Hmax <= Dimensions[Submeshes[index].LoaderIndex].Hmax && Dimensions[Submeshes[i].LoaderIndex].Hmin >= Dimensions[Submeshes[i].LoaderIndex].Hmin)
+					{
+						// decal distance must be only slightly less than distance of the submesh it falls on
+						Submeshes[i].Distance = Submeshes[index].Distance-0.0005;
+						index = -1; // end loop if we adjust distance 
+					}
+					index--;
+				}
+			 }
 		}
 	}
 
