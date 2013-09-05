@@ -245,6 +245,7 @@ void loadModel(const c8* fn)
 	FILE* s = fopen("viewer_submesh.txt","w");
 	for(u32 i=0;i<((scene::CM2Mesh*)(m))->Skins[((scene::CM2Mesh*)(m))->SkinID].Submeshes.size();i++)
     {  
+		// ToDo:: rewrite the folowing section using one ostringstream to create the line of text and one write to the file per loop
 	  // Create String handlers
       std::string info = "Submesh ";
 	  std::ostringstream number;
@@ -255,6 +256,7 @@ void loadModel(const c8* fn)
 	  std::ostringstream Radius;
 	  std::ostringstream ZDepth;
 	  std::ostringstream Dist;
+	  std::ostringstream M2SubmeshID; // submesh's index in the m2/skin files 
 	  // Slip titles into handlers
 	  SubMeshMode<< "  Mode:";
 	  ShaderType<< " ShaderType:";
@@ -263,6 +265,7 @@ void loadModel(const c8* fn)
 	  Radius<< " Radius:";
 	  ZDepth<< "Depth, Back:";
 	  Dist<< "Distance: ";
+	  M2SubmeshID<< " M2Submesh# ";
 	  number<<  i;
 	  // Put the data into the Handlers and Print it to the File
 	  info += number.str();
@@ -302,6 +305,10 @@ void loadModel(const c8* fn)
 		  break;
       }
 	  fwrite(info.c_str(),1,info.size(),s); 
+	  M2SubmeshID<< ((scene::CM2Mesh*)(m))->Skins[((scene::CM2Mesh*)(m))->SkinID].Submeshes[i].LoaderIndex; // get the submesh index relative to the m2/skin files
+	  std::string m2sid = M2SubmeshID.str();
+	  fwrite(m2sid.c_str(),1,m2sid.size(),s); // print to file
+	  fseek(s,1,true); // Isert space in File
       SubMeshMode<< ((scene::CM2Mesh*)(m))->Skins[((scene::CM2Mesh*)(m))->SkinID].Submeshes[i].Textures[0].Mode; //get submesh's mode
 	  std::string Mode = SubMeshMode.str();
 	  fwrite(Mode.c_str(),1,Mode.size(),s); // print to file
