@@ -207,7 +207,7 @@ struct VertexColor{
 };
 
 
-struct Light{
+struct M2Light{
     u16 Type;
     s16 Bone;
     core::vector3df Position;
@@ -221,7 +221,7 @@ struct Light{
 };
 
 
-struct Camera{
+struct M2Camera{
 	u32 Type;    // -1 = flyby, 0 = portrait, 1 = caracter info.  Is both type and index into cam lookup table 
 	float FOV;   // multiply by 35 to get degrees
 	float FarClip;
@@ -302,8 +302,8 @@ private:
     SMesh* Mesh;
     //SSkinMeshBuffer* MeshBuffer;
     //Taken from the Model file, thus m2M*
-	core::array<Light> M2MLights;
-	core::array<Camera> M2MCameras;
+	core::array<M2Light> M2MLights;
+	core::array<M2Camera> M2MCameras;
 	core::array<VertexColor> M2MVertexColor;
 	core::array<UVAnimation> M2MUVAnimations; // animations for textures
     core::array<ModelVertex> M2MVertices;

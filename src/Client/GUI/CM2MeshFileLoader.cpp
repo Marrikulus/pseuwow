@@ -297,7 +297,7 @@ void CM2MeshFileLoader::ReadLights()
 
     for(u32 i=0;i<header.Lights.num;i++)
     {
-        Light tempLight;
+        M2Light tempLight;
         MeshFile->read(&tempLight,16);//2xshort + vector3df
         ReadABlock(tempLight.AmbientColor,ABDT_FLOAT,3);
         ReadABlock(tempLight.AmbientIntensity,ABDT_FLOAT,1);
@@ -322,7 +322,7 @@ void CM2MeshFileLoader::ReadCameras()
 
     for(u32 i=0;i<header.Cameras.num;i++)
     {
-        Camera tempCamera;
+        M2Camera tempCamera;
         MeshFile->read(&tempCamera,16);
         ReadABlock(tempCamera.CamPosTranslation,ABDT_FLOAT,9); // 3 vector3df per CamPosTranslation element so 9 floats
 	    MeshFile->seek(header.Cameras.ofs+36);
@@ -1453,6 +1453,8 @@ M2MTextureFiles.clear();
 M2MTextureLookup.clear();
 M2MVertexColor.clear();
 M2MLights.clear();
+M2MCameras.clear();
+M2MUVAnimations.clear();
 return true;
 }
 
