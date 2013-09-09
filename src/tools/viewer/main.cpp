@@ -21,7 +21,7 @@ tutorial, we use a lot stuff from the gui namespace.
 #include "GUI/CWMOMeshFileLoader.h"
 #include "GUI/MemoryInterface.h"
 #include "MemoryDataHolder.h"
-//#include "CAnimatedMeshSceneNode.h"
+#include "GUI/CM2MeshSceneNode.h"
 
 
 using namespace irr;
@@ -43,6 +43,7 @@ scene::ISceneNode* Model = 0;
 scene::ISceneNode* SkyBox = 0;
 gui::IGUITreeView* TreeView = 0;
 bool Octree=false;
+
 
 scene::ICameraSceneNode* Camera[3] = {0, 0, 0};
 
@@ -364,15 +365,15 @@ void loadModel(const c8* fn)
 		Model = Device->getSceneManager()->addOctTreeSceneNode(m->getMesh(0));
 	else
 	{
-		//scene::CAnimatedMeshSceneNode* null;
-		scene::IAnimatedMeshSceneNode* animModel = Device->getSceneManager()->addAnimatedMeshSceneNode(m);
-		core::array<scene::IBoneSceneNode*> ChildBoneSceneNodes;
-		((scene::CM2Mesh*)(m))->createJoints(ChildBoneSceneNodes, animModel, Device->getSceneManager());
-		((scene::CM2Mesh*)(m))->LinkChildMeshes(animModel, Device->getSceneManager(), ChildBoneSceneNodes); // link child mesh nodes
+		scene::CM2MeshSceneNode* animModel = new CM2MeshSceneNode(m,Device->getSceneManager()->getRootSceneNode(),Device->getSceneManager(),-1);//fact->addM2SceneNode(m);
+		//scene::IAnimatedMeshSceneNode* animModel = Device->getSceneManager()->addAnimatedMeshSceneNode(m);
+		//core::array<scene::IBoneSceneNode*> ChildBoneSceneNodes;
+		//((scene::CM2Mesh*)(m))->createJoints(ChildBoneSceneNodes, animModel, Device->getSceneManager());
+		//((scene::CM2Mesh*)(m))->LinkChildMeshes(animModel, Device->getSceneManager(), ChildBoneSceneNodes); // link child mesh nodes
 		animModel->setAnimationSpeed(1000);
         animModel->setM2Animation(0);
 		Model = animModel;
-		ChildBoneSceneNodes.clear();
+		//ChildBoneSceneNodes.clear();
 	}
 	Model->setDebugDataVisible(scene::EDS_OFF);
 	// we need to uncheck the menu entries. would be cool to fake a menu event, but
@@ -882,6 +883,10 @@ int main(int argc, char* argv[])
 	video::IVideoDriver* driver = Device->getVideoDriver();
 	IGUIEnvironment* env = Device->getGUIEnvironment();
 	scene::ISceneManager* smgr = Device->getSceneManager();
+	
+	scene::ISceneNodeFactory *fact = new CM2MeshSceneNodeFactory(smgr);
+	smgr->registerSceneNodeFactory(fact);
+
 	//smgr->getParameters()->setAttribute(scene::ALLOW_ZWRITE_ON_TRANSPARENT, true); // test if fix alpha blend order
 	smgr->getParameters()->setAttribute(scene::COLLADA_CREATE_SCENE_INSTANCES, true);
 
@@ -1111,6 +1116,3 @@ int main(int argc, char* argv[])
 	Device->drop();
 	return 0;
 }
-
-/*
-**/
