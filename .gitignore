@@ -20,6 +20,8 @@ cmake_install.cmake
 # generic stuff #
 #################
 build
+bin/data
+temp
 
 # linux binaries #
 ##################
