@@ -216,8 +216,9 @@ namespace scene
 			u16 RootBone;             // index to bone/joint this submesh attaches to
 			float Radius;
 			float Distance;           // distance between built in camera and submeshe's nearest vertex
+			u16 NearestVertex;        // index to this submeshes vertex nearest the camera
 			core::stringc UniqueName; // id for the submesh incase submesh's geometry exists in multiple .skins.  Id should look like StartVertex_EndVertex.  maybe list bones for this submesh too
-			u16 LoaderIndex; // index to this submesh in the loaders array rather than in this mesh's array
+			u16 LoaderIndex;          // index to this submesh's data in the loader's arrays rather than in this mesh's array
 			irr::core::array <texture> Textures; // this submesh's texture descriptions (should be limited to 3)
 		};
 		struct skin{
@@ -228,6 +229,7 @@ namespace scene
 		core::array<skin> Skins;
 		u32 SkinID; // points to active skin
 		void LinkChildMeshes(IAnimatedMeshSceneNode *UI_ParentMeshNode, ISceneManager *smgr, core::array<IBoneSceneNode*> &JointChildSceneNodes); // use this for UI (scene) meshes
+		// ToDo:: add a function to return a list of visible submeshes for the scenenode to render. All possible submeshes for all views should be added to the mesh
 private:
 
 		void checkForAnimation();
