@@ -2,6 +2,7 @@
 #define __M2_MESH_H_INCLUDED__
 
 #include "irrlicht/irrlicht.h"
+#include <limits>
 
 namespace irr
 {
@@ -218,11 +219,11 @@ namespace scene
 			float Distance;           // distance between built in camera and submeshe's nearest vertex
 			u16 NearestVertex;        // index to this submeshes vertex nearest the camera
 			core::stringc UniqueName; // id for the submesh incase submesh's geometry exists in multiple .skins.  Id should look like StartVertex_EndVertex.  maybe list bones for this submesh too
-			u16 LoaderIndex;          // index to this submesh's data in the loader's arrays rather than in this mesh's array
+			u16 LoaderIndex;         // index to this submesh's data in the .skin file and CM2MeshFileLoader's arrays
 			irr::core::array <texture> Textures; // this submesh's texture descriptions (should be limited to 3)
 		};
 		struct skin{
-			u16 ID; // xx.skin id like 0, 1, 2 etc...
+			u16 ID; // xx.skin id like 0, 1, 2 etc...  // don't need this its redundant. It is the same as this skin's index in Skins
 			irr::core::array <submesh> Submeshes; // submeshes in this view
 		};
 
@@ -230,6 +231,14 @@ namespace scene
 		u32 SkinID; // points to active skin
 		void LinkChildMeshes(IAnimatedMeshSceneNode *UI_ParentMeshNode, ISceneManager *smgr, core::array<IBoneSceneNode*> &JointChildSceneNodes); // use this for UI (scene) meshes
 		// ToDo:: add a function to return a list of visible submeshes for the scenenode to render. All possible submeshes for all views should be added to the mesh
+
+		////////////////////
+		// submesh extream points
+		////////////////////
+
+		core::array<core::array<u32>> ExtremityPoints; // for each Submesh this holds an array of pointers to vertices that are extreme points
+		void findExtremes();
+
 private:
 
 		void checkForAnimation();
@@ -284,6 +293,86 @@ private:
 
         core::array< M2Animation > Animations;
         core::map<u32, core::array<u32> > AnimationLookup;
+
+		// A structure to track a Group of vetex Points in a submesh.
+		// It contains functions to subdivide and find the extreme points of a submesh.
+		// Adapted from ogre3d 
+		struct Group_of_Points
+		{
+			core::aabbox3d<float> Box;
+			core::list<u32> mIndices;
+
+			Group_of_Points ()
+			{ }
+
+			bool empty () const
+			{
+				if (mIndices.empty ())
+					return true;
+				if (Box.MinEdge == Box.MaxEdge)
+					return true;
+				return false;
+			}
+
+			float volume () const
+			{
+				return (Box.MaxEdge.X - Box.MinEdge.X) * (Box.MaxEdge.Y - Box.MinEdge.Y) * (Box.MaxEdge.Z - Box.MinEdge.Z);
+			}
+        
+			float getValueByAxis_FromVector(u32 Axis, core::vector3df V)
+			{
+				if(Axis==1){return V.X;}
+				else if(Axis==2){return V.Y;}
+				else if(Axis==3){return V.Z;}
+			}
+
+			void extend (core::vector3df v)
+			{
+				if (v.X < Box.MinEdge.X) Box.MinEdge.X = v.X;
+				if (v.Y < Box.MinEdge.Y) Box.MinEdge.Y = v.Y;
+				if (v.Z < Box.MinEdge.Z) Box.MinEdge.Z = v.Z;
+				if (v.X > Box.MaxEdge.X) Box.MaxEdge.X = v.X;
+				if (v.Y > Box.MaxEdge.Y) Box.MaxEdge.Y = v.Y;
+				if (v.Z > Box.MaxEdge.Z) Box.MaxEdge.Z = v.Z;
+			}
+
+			void computeBBox (scene::IMeshBuffer *submesh) // resize box around its vertices
+			{
+				// make the box imposibly small
+				Box.MinEdge.X = Box.MinEdge.Y = Box.MinEdge.Z = std::numeric_limits<float>::infinity(); // set near value imposibly far out of range
+				Box.MaxEdge.X = Box.MaxEdge.Y = Box.MaxEdge.Z = -std::numeric_limits<float>::infinity(); // set the far value imposibly near out of range
+
+				for (core::list<u32>::Iterator i = mIndices.begin (); i != mIndices.end (); ++i)
+				{
+					extend (submesh->getPosition(*i)); // expand box to include the vertex indicated by current Index 
+				}
+			}
+
+			Group_of_Points split (u32 split_axis, scene::IMeshBuffer *submesh)
+			{
+				// Generate a float halfway along the current axis 
+				float SplitPoint = (getValueByAxis_FromVector(split_axis, Box.MinEdge) + getValueByAxis_FromVector(split_axis, Box.MaxEdge)) * 0.5f;
+				Group_of_Points newbox;
+
+				// Separate Vertices into two groups by what side of the SplitPoint they fall on using the current box and the newbox.  
+				for (core::list<u32>::Iterator i = mIndices.begin (); i != mIndices.end (); )
+				{
+					if (getValueByAxis_FromVector(split_axis, submesh->getPosition(*i)) > SplitPoint) // if the vertex belongs in the new box
+					{
+						newbox.mIndices.push_back(*i); // copy it to the new box
+						mIndices.erase(i); // and delete it from the original
+					}
+					else
+						++i; // if it belongs where it is move along to the next vertex
+				}
+
+				computeBBox (submesh);
+				newbox.computeBBox (submesh);
+
+				return newbox;
+			}
+		};
+
 	};
 
 } // end namespace scene
