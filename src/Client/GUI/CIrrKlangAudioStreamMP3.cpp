@@ -7,6 +7,7 @@
 #include "CIrrKlangAudioStreamMP3.h"
 #include <memory.h>
 #include <stdlib.h> // free, malloc and realloc
+#include <algorithm>
 #include <string.h>
 
 namespace irrklang

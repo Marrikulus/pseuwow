@@ -1,4 +1,4 @@
-include_directories (${PROJECT_SOURCE_DIR}/src/dep/include ${PROJECT_SOURCE_DIR}/src/shared ${PROJECT_SOURCE_DIR}/src/Client)
+include_directories (${PROJECT_SOURCE_DIR}/src/dep/include ${PROJECT_SOURCE_DIR}/src/dep/include/irrlicht ${PROJECT_SOURCE_DIR}/src/dep/src/irrlicht ${PROJECT_SOURCE_DIR}/src/shared ${PROJECT_SOURCE_DIR}/src/Client)
 
 add_executable (viewer
 main.cpp
