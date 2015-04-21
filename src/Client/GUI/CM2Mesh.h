@@ -160,7 +160,7 @@ namespace scene
 		struct BufferInfo{  //Submesh Data Element
 			u16 ID;
 			u16 Mode;
-			u16 order;
+			s16 order;
 			u16 block;
 			u16 blend;
 			u16 flag;       // Renderflag
@@ -204,8 +204,8 @@ namespace scene
 			bool animated;     
 			u16 RenderFlag; 
 			u16 BlendFlag;
-			u16 shaderType;   // actualy 2 u8 shader flags
-			u16 Mode;         // helps indicate shader
+			s16 shaderType;   // actualy 2 u8 shader flags
+			u16 Mode;  // helps indicate shader?  opcount:: texture, UV animation, render flags, and transparency indices in this stuct point to start index opcount/mode = how many values to get
 			u16 Block; // = some sort of render flag indicating submesh grouping&order
 			//pointers to animations
 			u16 VertexColor;  // needs to point directly into cm2mesh::VertexColor or =-1 for no color
@@ -219,7 +219,8 @@ namespace scene
 			float Distance;           // distance between built in camera and submeshe's nearest vertex
 			u16 NearestVertex;        // index to this submeshes vertex nearest the camera
 			core::stringc UniqueName; // id for the submesh incase submesh's geometry exists in multiple .skins.  Id should look like StartVertex_EndVertex.  maybe list bones for this submesh too
-			u16 LoaderIndex;         // index to this submesh's data in the .skin file and CM2MeshFileLoader's arrays
+			u16 SubmeshIndex;         // index to this submesh's data in the .skin file and CM2MeshFileLoader's arrays
+			u16 BufferIndex;          // index to this submesh's buffer in this mesh
 			irr::core::array <texture> Textures; // this submesh's texture descriptions (should be limited to 3)
 		};
 		struct skin{
@@ -228,16 +229,21 @@ namespace scene
 		};
 
 		core::array<skin> Skins;
-		u32 SkinID; // points to active skin
+		u32 SkinID; // points to active skin.  This belongs in CM2MeshSceneNode not here
 		void LinkChildMeshes(IAnimatedMeshSceneNode *UI_ParentMeshNode, ISceneManager *smgr, core::array<IBoneSceneNode*> &JointChildSceneNodes); // use this for UI (scene) meshes
+		// ToDo:: add an array of unique preconfigured materials to replace part of texture element new texture element will index its material
 		// ToDo:: add a function to return a list of visible submeshes for the scenenode to render. All possible submeshes for all views should be added to the mesh
 
 		////////////////////
 		// submesh extream points
 		////////////////////
-
-		core::array<core::array<u32>> ExtremityPoints; // for each Submesh this holds an array of pointers to vertices that are extreme points
+		struct BufferPointGroup                            // A structure to store a group of indexes to the extream points of a single submesh buffer
+		{
+			core::array <u32> indexes;
+		};
+		core::array <BufferPointGroup> ExtreamPointGroups;  // Holds all the groups of extremes for all the submesh buffers
 		void findExtremes();
+		void getDist_NearandFar_ofSubmesh(u32 submeshID, float &near, float &far, const core::vector3df camPos, core::vector3df camNormal); // gets the distance to nearest and farthest point of a submesh from a camera plane's origen
 
 private:
 

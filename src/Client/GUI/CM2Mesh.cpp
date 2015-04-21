@@ -1536,16 +1536,21 @@ void CM2Mesh::LinkChildMeshes (IAnimatedMeshSceneNode *ParentMeshNode, ISceneMan
 
 void CM2Mesh::findExtremes() 
 {
-	ExtremityPoints.clear();
+	u32 NUMBER;
+	if (ExtreamPointGroups.size() > 0)
+	{
+		NUMBER = ExtreamPointGroups.size();
+		ExtreamPointGroups.erase(0,NUMBER);
+	}
 	// Loop through submeshes.  For each Submesh find count of the points that are
 	// as far as possible from each other. These are our extreme points. 
 	// they roughly define the shape of the submesh like a form fitting spandex 
 	// bounding volume instead of a cardboard box.
-	for (u32 s=0; s>getMeshBufferCount()-1; s++) // Loop through submeshes
+	for (u32 s=0; s < getMeshBufferCount()-1; s++) // Loop through submeshes
 	{
 		IMeshBuffer* S=getMeshBuffer(s); // current submesh
-		core::array<u32> SubmeshExtremes;// extremes for this submesh
-		ExtremityPoints.push_back(SubmeshExtremes);
+		BufferPointGroup SubmeshExtremes;// extremes for this submesh
+		ExtreamPointGroups.push_back(SubmeshExtremes);
 		u16 count; // the number of points to find in this submesh
 
 		// chose the number of points for this submesh
@@ -1557,7 +1562,7 @@ void CM2Mesh::findExtremes()
 
 		// First set up the first box. It contains all points in the submesh
 		boxes.push_back(Group_of_Points());
-		for (u32 i=0; i>S->getIndexCount()-1; i++)   // copy all indices from this submesh
+		for (u32 i=0; i < S->getIndexCount()-1; i++)   // copy all indices from this submesh
 		{
 			(*boxes.begin()).mIndices.push_back(S->getIndices()[i]);
 		}
@@ -1619,9 +1624,9 @@ void CM2Mesh::findExtremes()
 				core::vector3df v = S->getPosition(*i); // get the vertex for the current index
 				float r = (v - center).getLengthSQ ();
 
-				for (u32 e = 0; e != ExtremityPoints[s].size(); ++e) // Loop through any extreme points we already collected
+				for (u32 e = 0; e != ExtreamPointGroups[s].indexes.size(); ++e) // Loop through any extreme points we already collected
 				{
-					r += (S->getPosition(ExtremityPoints[s][e]) - v).getLengthSQ (); // Compare them against the current vertex
+					r += (S->getPosition(ExtreamPointGroups[s].indexes[e]) - v).getLengthSQ (); // Compare them against the current vertex
 				}
 				if (r > rating) // if current vertex would make a better extreme point than the last vertex in this group update rating and best_vertex
 				{
@@ -1631,9 +1636,30 @@ void CM2Mesh::findExtremes()
 			}
 
 			if (rating > 0)
-				ExtremityPoints[s].push_back(best_vertex); // Add this group's best extreme point index to this submesh's extreme points 
+				ExtreamPointGroups[s].indexes.push_back(best_vertex); // Add this group's best extreme point index to this submesh's extreme points 
 		}
 	}
+}
+
+void CM2Mesh::getDist_NearandFar_ofSubmesh(u32 submeshID, float &near, float &far, core::vector3df camPos, core::vector3df camNormal)
+{
+	core::plane3df camPlane(camPos, camNormal);
+
+	for (u32 p=0; p < ExtreamPointGroups[submeshID].indexes.size()-1; p++)
+	{                                                                                  
+		scene::IMeshBuffer *submesh = this->getMeshBuffer(submeshID);
+
+		// only use points in front of the camera plane
+		if (camPlane.classifyPointRelation(submesh->getPosition(ExtreamPointGroups[submeshID].indexes[p])) != core::ISREL3D_BACK)
+		{
+			float dist = submesh->getPosition(ExtreamPointGroups[submeshID].indexes[p]).getDistanceFromSQ(camPos);
+			// check if the point is farther than the current farthest distance
+			if (far < dist){far = dist;}
+			// if its not farther is it nearer than the nearest distance we have found?
+			else if (near > dist){near = dist;}
+		}
+	}
+		
 }
 
 
