@@ -41,6 +41,7 @@ core::stringw MessageText;
 core::stringw Caption;
 scene::ISceneNode* Model = 0;
 scene::ISceneNode* SkyBox = 0;
+CM2MeshSceneNodeFactory *fact;
 gui::IGUITreeView* TreeView = 0;
 bool Octree=false;
 
@@ -306,7 +307,7 @@ void loadModel(const c8* fn)
 		  break;
       }
 	  fwrite(info.c_str(),1,info.size(),s); 
-	  M2SubmeshID<< ((scene::CM2Mesh*)(m))->Skins[((scene::CM2Mesh*)(m))->SkinID].Submeshes[i].LoaderIndex; // get the submesh index relative to the m2/skin files
+	  M2SubmeshID<< ((scene::CM2Mesh*)(m))->Skins[((scene::CM2Mesh*)(m))->SkinID].Submeshes[i].SubmeshIndex; // get the submesh index relative to the m2/skin files
 	  std::string m2sid = M2SubmeshID.str();
 	  fwrite(m2sid.c_str(),1,m2sid.size(),s); // print to file
 	  fseek(s,1,true); // Isert space in File
@@ -365,7 +366,11 @@ void loadModel(const c8* fn)
 		Model = Device->getSceneManager()->addOctTreeSceneNode(m->getMesh(0));
 	else
 	{
-		scene::CM2MeshSceneNode* animModel = new CM2MeshSceneNode(m,Device->getSceneManager()->getRootSceneNode(),Device->getSceneManager(),-1);//fact->addM2SceneNode(m);
+		scene::CM2MeshSceneNode* animModel = ((scene::CM2MeshSceneNode*)(fact->addM2SceneNode(m,NULL)));
+		((scene::CM2Mesh*)(m))->findExtremes();
+		animModel->setSkinId(0); //((scene::CM2Mesh*)(m))->SkinID); //set node to use default skin provided by mesh. ToDo:: fix mpq multi skin loading and remove SkinId from cm2mesh
+		animModel->setSubmeshSorting(true);
+		//scene::CM2MeshSceneNode* animModel = new CM2MeshSceneNode(m,Device->getSceneManager()->getRootSceneNode(),Device->getSceneManager(),-1);
 		//scene::IAnimatedMeshSceneNode* animModel = Device->getSceneManager()->addAnimatedMeshSceneNode(m);
 		//core::array<scene::IBoneSceneNode*> ChildBoneSceneNodes;
 		//((scene::CM2Mesh*)(m))->createJoints(ChildBoneSceneNodes, animModel, Device->getSceneManager());
@@ -884,7 +889,7 @@ int main(int argc, char* argv[])
 	IGUIEnvironment* env = Device->getGUIEnvironment();
 	scene::ISceneManager* smgr = Device->getSceneManager();
 	
-	scene::ISceneNodeFactory *fact = new CM2MeshSceneNodeFactory(smgr);
+	fact = new CM2MeshSceneNodeFactory(smgr);
 	smgr->registerSceneNodeFactory(fact);
 
 	//smgr->getParameters()->setAttribute(scene::ALLOW_ZWRITE_ON_TRANSPARENT, true); // test if fix alpha blend order
@@ -1080,6 +1085,11 @@ int main(int argc, char* argv[])
             driver->draw3DLine(core::vector3df(-1,-1,-1),core::vector3df(0,0,0),video::SColor(255,255,0,255));
 
             env->drawAll();
+
+			video::SMaterial mat = video::SMaterial();
+			mat.Lighting = false;
+			driver->setMaterial(mat);
+			driver->draw3DBox(Camera[2]->getViewFrustum()->getBoundingBox(),video::SColor(255,255,0,255));
 
 			driver->endScene();
 
