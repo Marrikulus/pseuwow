@@ -10,6 +10,8 @@
 #include "CM2Mesh.h"
 
 #include "matrix4.h"
+#include <algorithm>
+#include <iostream>
 
 
 ////////////////////////////////////////////////////////////////////////
@@ -214,11 +216,11 @@ namespace scene
 		// into a virtual timeline and applys the animation to this node
 		// http://irrlicht.sourceforge.net/forum/viewtopic.php?f=9&t=49037
 				
-		// ToDo: we need a switch skin function that will change materials to match the cm2mesh's current skin
-		// and replace our private list of visible submeshes
+		// set or swap skins
+		virtual void setSkinId(u32 ID);
 				
-		// ToDo: need a public flag to tell if submeshes should be sorted and a public function to set the flag and anouther
-		// function to be called from inside the render function to sort them if the flag is true.
+		// toggle submesh sorting
+		virtual void setSubmeshSorting(bool sort);
 		
 		//! Sets a new mesh
 		virtual void setMesh(IAnimatedMesh* mesh);
@@ -265,6 +267,65 @@ namespace scene
 	private:
 
 		// ToDo: render should only render submeshes in this classes private list of visible submeshes
+		struct BufferTag 
+		{
+			u32 subMesh;    // submesh index into current skin's submesh list
+			float farDist;  // distance from camera to farthest extreem point of submesh
+			float nearDist; // distance from camera to nearest extreem point of submesh
+			bool ContainsCam; // if the camera is inside the submesh we must use the far distance so the surface behind the camera won't cover the cameras view
+			// Also for submeshes paralel to the camera ignore the points behind the camera as distance begins increasing again and may ruin the sort.
+		};
+		core::array <BufferTag> CurrentView; // list of tags indicating renderable objects
+		struct DecalTag
+		{
+			u32 subMesh; // decal geometry
+			u32 target;  // submesh to apply decal to
+		};
+		core::array<DecalTag> Decals; // list of decal tags
+		
+		// Comparison function object based on http://www.codeproject.com/Articles/38381/STL-Sort-Comparison-Function
+		struct FarthestToNearest : public std::binary_function<BufferTag,BufferTag,bool>
+		{
+			inline bool operator()(const BufferTag& a, const BufferTag& b)
+			{
+				// if they overlap in distance
+				if((b.nearDist < a.farDist && b.nearDist > a.nearDist)||(a.nearDist < b.farDist && b.nearDist > a.nearDist))
+				{
+					// and the camera isn't inside either mesh
+					if (a.ContainsCam==false && b.ContainsCam==false)
+					{
+						// compair by near edge
+						return a.nearDist > b.nearDist;
+					}
+					// but if the camera is inside the buffer indicated by tag a
+					else if (a.ContainsCam==true && b.ContainsCam==false)
+					{
+						// use the near edge of the b against the far edge of a
+						return a.farDist > b.nearDist;
+					}
+					// or if it is in the b tag's buffer
+					else if (a.ContainsCam==false && b.ContainsCam==true)
+					{
+						// use the near edge of a against the far edge of b
+						return a.nearDist < b.farDist;
+					}
+				}
+				// in all other cases use only far edge
+				else
+				{
+					return a.farDist > b.farDist;
+				}
+			}
+		};
+		void updateTagDist(BufferTag& tag);    // sets a tag's current near and far distance.
+		void sortTags();        // sorts the tags with a quick sort implemented by the std
+		void getCurrentView();  // called by ChangeSkin and when setting the default skin at node creation.  Determine if submesh sorting is required here based on the current skin.
+		void updateCurrentView(); // updates the current view's tags for distance and sorts them
+		bool ShouldThisTagSortByNear (BufferTag &t1, BufferTag &t2); // determines which edge to compair against for tag t1
+		bool IsThisTagFartherThanThePivot(u32 &TagID, core::array <BufferTag> &TagArray, u32 &Pivot);  // determines if the left tag is farther from the camera than the right tag
+		int Partition(core::array<BufferTag> &range, u32 start, u32 end); // divides up a given range of an array by returning the index of the element with an aporximate value midway between start and end
+		void QuickSort(core::array<BufferTag> &array, u32 s, u32 e); // specifies an array and range to quick sort
+
 		
 		//! Get a static mesh for the current frame of this animated mesh
 		IMesh* getMeshForCurrentFrame();
@@ -277,6 +338,7 @@ namespace scene
 		core::aabbox3d<f32> Box;
 		IAnimatedMesh* Mesh;
 
+		u32 SkinID; // index to the current skin of this node.  Determines what submeshes are renderable
 		s32 StartFrame;
 		s32 EndFrame;
 		f32 FramesPerSecond;
@@ -294,6 +356,7 @@ namespace scene
 		bool Looping;
 		bool ReadOnlyMaterials;
 		bool RenderFromIdentity;
+		bool SortSubmeshes;
 
 		IAnimationEndCallBack* LoopCallBack;
 		s32 PassCount;

@@ -71,7 +71,7 @@ ISceneNode* CM2MeshSceneNodeFactory::addM2SceneNode(IAnimatedMesh* mesh, ISceneN
 {
 	if (!parent)
       parent = Manager->getRootSceneNode();
-
+	  
 	CM2MeshSceneNode* node = new CM2MeshSceneNode(mesh, parent, Manager, -1);
 	node->drop();
     return node;
@@ -364,6 +364,12 @@ void CM2MeshSceneNode::render()
 		return;
 
 
+	// if submesh sorting is enabled we need to sort the render order of the submeshes before doing anything else.
+	if (SortSubmeshes == true)
+	{
+		updateCurrentView();
+	}
+
 	bool isTransparentPass =
 		SceneManager->getSceneNodeRenderPass() == scene::ESNRP_TRANSPARENT;
 
@@ -378,7 +384,7 @@ void CM2MeshSceneNode::render()
 	else
 	{
 		#ifdef _DEBUG
-			os::Printer::log("Animated Mesh returned no mesh to render.", Mesh->getDebugName(), ELL_WARNING);
+			//os::Printer::log("Animated Mesh returned no mesh to render.", Mesh->getDebugName(), ELL_WARNING);
 		#endif
 	}
 
@@ -398,8 +404,9 @@ void CM2MeshSceneNode::render()
 		if (DebugDataVisible & scene::EDS_HALF_TRANSPARENCY)
 		{
 
-			for (u32 i=0; i<m->getMeshBufferCount(); ++i)
+			for (u32 c=0; c<CurrentView.size()-1; ++c) // loop through current view
 			{
+				u32 i = CurrentView[c].subMesh; // point i to the buffer indexed in the current tag
 				scene::IMeshBuffer* mb = m->getMeshBuffer(i);
 				mat = ReadOnlyMaterials ? mb->getMaterial() : Materials[i];
 				mat.MaterialType = video::EMT_TRANSPARENT_ADD_COLOR;
@@ -418,10 +425,17 @@ void CM2MeshSceneNode::render()
 	// render original meshes
 	if (renderMeshes)
 	{
-		for (u32 i=0; i<m->getMeshBufferCount(); ++i)
+		for (u32 c=0; c<CurrentView.size()-1; ++c) // loop through current view   // i could store tags for solid decal and transparent pass in seperate arrays 
 		{
+			u32 i = CurrentView[c].subMesh; // point i to the buffer indexed in the current tag
 			video::IMaterialRenderer* rnd = driver->getMaterialRenderer(Materials[i].MaterialType);
-			bool transparent = (rnd && rnd->isTransparent());
+			//bool transparent = (rnd && rnd->isTransparent());
+			bool transparent;
+			if (((CM2Mesh*)Mesh)->Skins[SkinID].Submeshes[CurrentView[c].subMesh].Textures[0].shaderType == 0)
+				{
+					transparent = false;
+				}
+			else transparent = true;
 
 			// only render transparent buffer if this is the transparent render pass
 			// and solid only in solid pass
@@ -429,7 +443,7 @@ void CM2MeshSceneNode::render()
             //Render only those submeshes that are actually active
             bool renderSubmesh = true;
             if(Mesh->getMeshType() == EAMT_M2)
-              renderSubmesh = ((CM2Mesh*)Mesh)->getGeoSetRender(i);
+              renderSubmesh = ((CM2Mesh*)Mesh)->getGeoSetRender(i);  // the geoset bit is pointless.  these geosets are built from a single view(skin). submeshes not in this geoset are not in the mesh till we read all skins
 			if (transparent == isTransparentPass && renderSubmesh) //PSEUWOW M2 RENDERING END
 			{
 				scene::IMeshBuffer* mb = m->getMeshBuffer(i);
@@ -689,7 +703,7 @@ IShadowVolumeSceneNode* CM2MeshSceneNode::addShadowVolumeSceneNode(const IMesh* 
 	if (!shadowMesh)
 		shadowMesh = Mesh; // if null is given, use the mesh of node
 
-	Shadow = new CShadowVolumeSceneNode(shadowMesh, this, SceneManager, id,  zfailmethod, infinity);
+	Shadow = NULL; //new CShadowVolumeSceneNode(shadowMesh, this, SceneManager, id,  zfailmethod, infinity); // use a decal
 	return Shadow;
 }
 
@@ -939,6 +953,21 @@ void CM2MeshSceneNode::deserializeAttributes(io::IAttributes* in, io::SAttribute
 }
 
 
+// Sets or switches to a new skin by indexing to one of a mesh's skins
+void CM2MeshSceneNode::setSkinId(u32 ID)
+{
+	SkinID = ID; 
+	getCurrentView(); // Builds the currentview for the next renderpass so only this SkinID's submeshes will now be used.
+	// ToDo: When we switch skins we need to change the materials to match the cm2mesh's current skin
+}
+
+
+// toggle submesh sorting
+void CM2MeshSceneNode::setSubmeshSorting(bool sort)
+{
+	SortSubmeshes = sort;
+}
+
 //! Sets a new mesh
 void CM2MeshSceneNode::setMesh(IAnimatedMesh* mesh)
 {
@@ -1036,6 +1065,243 @@ void CM2MeshSceneNode::setJointMode(E_JOINT_UPDATE_ON_RENDER mode)
 	//if (mode>3) mode=3;
 
 	JointMode=mode;
+}
+
+
+void CM2MeshSceneNode::updateTagDist(BufferTag& tag)
+{
+	// set a default distance to test against
+	tag.farDist = -std::numeric_limits<float>::infinity(); // immposably near for far value
+	tag.nearDist = std::numeric_limits<float>::infinity(); // immposably far for our near value  This way values will start at the distance of the first tested point
+
+	//scene::CM2Mesh* m = ((scene::CM2Mesh*)(this->getMesh()));
+	scene::CM2Mesh* m = (scene::CM2Mesh*)getMeshForCurrentFrame();
+	scene::IMeshBuffer *submesh = m->getMeshBuffer(m->Skins[SkinID].Submeshes[tag.subMesh].BufferIndex);
+	                                    // I can't just use the subMesh index in the tag, it is not the same as the BufferIndex in the Submeshes list. If a submesh is referenced in multiple skins its index to submesh data may not = index to buffer
+	//core::array<u32> &SubMeshExtreams = m->ExtremityPoints[m->Skins[SkinID].Submeshes[tag.subMesh].BufferIndex];
+	//core::array<u32> SubMeshExtreams = m->ExtremityPoints[m->Skins[SkinID].Submeshes[tag.subMesh].BufferIndex];
+	scene::ICameraSceneNode *cam = SceneManager->getActiveCamera();
+	//core::plane3df camPlane(((core::vector3df)cam->getAbsolutePosition()), (cam->getTarget() - cam->getPosition()).normalize()); // a plane at camera position facing the same direction
+	m->getDist_NearandFar_ofSubmesh(tag.subMesh,tag.nearDist,tag.farDist,(core::vector3df)cam->getAbsolutePosition(),(cam->getTarget() - cam->getPosition()).normalize());
+
+	//std::cout << "Distance to the nearest point of Submesh " << tag.subMesh << "is " << tag.nearDist << ".\n";
+	//u32 Size = ((scene::CM2Mesh*)Mesh)->ExtremityPoints[m->Skins[SkinID].Submeshes[tag.subMesh].BufferIndex].size();  // why is this an acces violation?
+	// Loop through the extremity points for this tag's submesh.
+	/*for (u32 p=0; p < SubMeshExtreams.size()-1; p++)//SubMeshExtreams.size()-1; p++)
+	{                                                                                  
+		float dist = submesh->getPosition(SubMeshExtreams[p]).getDistanceFromSQ(cam->getAbsolutePosition());
+		
+		tag.ContainsCam=false;*/
+		/*// if camera is inside current Submesh's aabbox then this tag must not be sorted by near edge. test if aabbox near and far coords are in frustum
+		if (submesh->getBoundingBox().isPointInside(cam->getAbsolutePosition()) == true)
+		{
+			tag.ContainsCam=true;
+		}/*
+		// if submesh surounds or is paralel to the camera, having any of its points behind the camera plane, this tag must sort by far edge
+		if (camPlane.classifyPointRelation(submesh->getPosition(SubMeshExtreams[p])) == core::ISREL3D_BACK)
+		{
+			tag.ContainsCam=true;
+		}*/
+		//else {tag.ContainsCam=false;}
+		/*
+		// only use points in front of the camera
+		if (camPlane.classifyPointRelation(submesh->getPosition(SubMeshExtreams[p])) != core::ISREL3D_BACK)
+		{
+			// check if the point is farther than the current farthest distance
+			if (tag.farDist < dist)
+			{
+				tag.farDist = dist;
+			}
+			// if its not farther is it nearer than the nearest distance we have found?
+			else if (tag.nearDist > dist)
+			{
+				tag.nearDist = dist;
+			}
+		}
+	}*/
+}
+
+
+void CM2MeshSceneNode::sortTags()
+{
+	//std::sort(CurrentView.begin(),CurrentView.end(),FarthestToNearest());
+	QuickSort(CurrentView, 0, CurrentView.size()-1);
+}
+
+
+bool CM2MeshSceneNode::ShouldThisTagSortByNear (BufferTag &t1, BufferTag &t2)
+{
+	//if (t1.overlay == true) // if the tag is an overlay it should always be sorted by it's near edge.  Shader types > than 0 are overlays regardless of actual material type.
+	if (((scene::CM2Mesh*)(Mesh))->Skins[SkinID].Submeshes[t1.subMesh].Textures[0].shaderType > 0)
+	{
+		return true;
+	}
+	
+	// if this tag is not an overlay 
+	else if (t1.ContainsCam == false)  // and it's mesh isn't paralel to, or containing the camera
+	{
+		//We might be able to use the near edge 
+		if( t1.nearDist > t2.nearDist && t1.nearDist < t2.farDist) // so check if the tag we are testing against overlaps in distance
+		{
+			return true;  // this tag should be sorted by it's near edge. 
+			
+			//If there is still trouble with large and small meshes we can fix it by limiting this to similar sized meshes
+			/*//if neither overlaping mesh is more than 1.5 times the thickness of the other (about same size range) use the near edge
+			if(t1.farDist-t1.nearDist !> (t2.farDist-t2.nearDist)*1.5 && t2.farDist-t2.nearDist !> (t1.farDist-t1.nearDist)*1.5)
+			{
+				return true;
+			}*/
+		}
+	}
+}
+
+
+bool CM2MeshSceneNode::IsThisTagFartherThanThePivot(u32 &TagID, core::array <BufferTag> &TagArray, u32 &Pivot)
+{
+	//float &TagDist = TagArray[TagID].nearDist;
+	//float &PivotDist = TagArray[Pivot].nearDist;
+	/*
+	//find the sortpoint
+	float &TagDist = TagArray[TagID].farDist;
+	float &PivotDist = TagArray[Pivot].farDist;
+	
+	// if the tag should be sorted by near edge
+	if (true == ShouldThisTagSortByNear (TagArray[TagID], TagArray[Pivot])){TagDist = TagArray[TagID].nearDist;}
+	// if not then leave it to sort by far edge.
+
+	// if the pivot should be sorted by near edge
+	if (true == ShouldThisTagSortByNear (TagArray[Pivot], TagArray[TagID])){PivotDist = TagArray[Pivot].nearDist;}
+	// if not then leave it to sort by far edge
+	*/
+	// now do the compair
+	//if (TagDist < PivotDist){return false;}
+	//else if (TagDist == PivotDist){Pivot = TagID;} // this tag is our new pivot
+	if (TagArray[TagID].nearDist <= TagArray[Pivot].nearDist){return false;}
+	else {return true;}
+}
+
+
+int CM2MeshSceneNode::Partition(core::array<BufferTag> &range, u32 start, u32 end)
+{
+	 u32 leftEdge = start;                                    // Position of the element nearest the begining of the range
+     u32 rightEdge = end + 1;                                 // Position of the element nearest the end of the range
+     u32 center = start+(end - start)/2;                      // Position of the element nearest the center of this range
+     
+     while (leftEdge < rightEdge)                            // Edges are sliding towards each other.  Stop when they meet
+     {
+		 // loop through first half of the range till we find a tag nearer than the center tag
+		 while (true == IsThisTagFartherThanThePivot(leftEdge, range, center) && leftEdge < rightEdge) 
+         {
+			 leftEdge++;  // While the leftEdge's tag is farther than the center's tag keep moving the left edge nearer the center
+		 }  
+		 // Since the loop has ended we either found a tag nearerer than or of equal distance to our centeral tag or ran out of tags to test.
+		 
+		 // loop through the second half of the range till we find a tag with a distance farther than the center tag's
+		 while (false == IsThisTagFartherThanThePivot(rightEdge, range, center) && leftEdge < rightEdge)
+		 {
+			 rightEdge--;  // While the center tag is farther from the camera move the right edge nearer the center
+		 }
+		 // Since the loop has ended we either found a tag that belongs on the left side of our centeral tag or ran out of tags to test.
+
+		 // If we still have tags to test we need to swap our current 2 before continueing.
+		 if(leftEdge < rightEdge)
+		 {
+			 BufferTag temp = range[rightEdge];    
+			 range[rightEdge] = range[leftEdge];
+			 range[leftEdge] = temp;
+		 }
+     }     
+     return leftEdge;  // Return the index of the tag nearest the center distance wise of this range of tags
+}
+
+
+void CM2MeshSceneNode::QuickSort(core::array<BufferTag> &array, u32 rangeStart, u32 rangeEnd)
+{
+	 int middle;
+     if (rangeStart < rangeEnd)                                       // if the range has more than 1 element then partition and recurse till sorted
+    {
+          middle = Partition(array, rangeStart, rangeEnd);   // find the middle distance and move > and < elements to their correct side
+          QuickSort(array, rangeStart, middle);                    // sort first half
+          QuickSort(array, middle+1, rangeEnd);                 // sort second half
+     }
+     return;
+}
+
+
+void CM2MeshSceneNode::getCurrentView()
+{
+	//Clear decals and currentview from last skin
+	if (!CurrentView.empty())
+	{
+		CurrentView.clear();
+		Decals.clear();
+	}
+	for (u32 s=0; s<((scene::CM2Mesh*)(Mesh))->Skins[SkinID].Submeshes.size()-1; s++) // loop through submeshes in the current skin
+	{
+		if (((scene::CM2Mesh*)(Mesh))->Skins[SkinID].Submeshes[s].Textures[0].shaderType == 2) // if decal
+		{
+			DecalTag tempDecal;
+			tempDecal.subMesh=s; // index to the decal in the skin's submesh list
+			Decals.push_back(tempDecal);
+		}
+		else // if it isn't a decal
+		{
+			BufferTag tempTag; 
+			tempTag.subMesh=s;   //index to the submesh in a skin's submesh list. Use it to find the buffer index and submesh index // ((scene::CM2Mesh*)(Mesh))->Skins[((scene::CM2Mesh*)(Mesh))->SkinID].Submeshes[s].BufferIndex;
+			
+			// Now we have a tag indexing a submesh so add it to the list of renderable objects
+			CurrentView.push_back(tempTag);
+			// the distance will be initialized and maintained through updateCurrentView by updateTagDist
+		}
+	}
+}
+
+
+void CM2MeshSceneNode::updateCurrentView()
+{
+	// Update tags
+	for (u32 t=0; t<CurrentView.size()-1; t++) // loop through tags
+	{
+		updateTagDist(CurrentView[t]);
+		std::cout << "Distance to the nearest point of Submesh " << CurrentView[t].subMesh << "is " << CurrentView[t].nearDist << ".\n";
+	}
+	// Now we need to sort the list of tags.
+	sortTags();
+
+	// ToDo:: loop through Decals testing backwards through currentVeiw against aabbox with ray cast from camera (or inverse normal of decal) through center of decal.
+	//  May be possable to skip pojecting decals by using the textures render flags to render submeshes considered solid in the solid pass followed by decals and then effects
+	/*if (Decals.size()>0)
+	{
+		u32 d = 0;
+		while (d < Decals.size()) // will d can directly acces a decal
+		{
+			// Cast a ray from the camera position through the center of mass of the decal.  I can make an array of rays between cam and extreams(or bbox corners) to test against if I need acuracy
+
+			s32 t = CurrentView.size()-1;  // points to the tag of the submesh nearest the camera
+			while (0 =< t) 
+			{ 
+				// The tag's submesh must have a shadertype of 0 or the decal can't fall on it.  If it can't recieve a decal skip the tag and go to the next
+				if (((scene::CM2Mesh*)(Mesh))->Skins[SkinID].Submeshes[CurrentView[t].subMesh].Textures[0].shaderType == 0)
+				{
+					// Test the ray against this submesh
+
+					{
+						// The first submesh to intersect with the ray is the one to render the decal on so save it's index to the decal tag.
+						Decals[d].target = CurrentView[t].subMesh;
+						d++;   // move to the next decal for the next pass
+						t = 0; // stop this loop so we can move to the next decal
+					}
+				}
+				// If we haven't found a receptive submesh and we are out of tags to test then point the decal at the first submesh to prevent errors. 
+				else if (t==0){Decals[d].target = 0;} // This shouldn't happen but just in case. remember if there are no decalable submeshes i need to render decals before other transparents use -1 for submesh id meaning render decal before submeshes
+				t--;
+			}
+		}
+		// Sort Decals by decal.target small to large.
+	}*/
+	// ToDo:: render function must first call updateCurrentView() then loop through CurrentView rendering each tag's buffer.
+	// when rendering current view we will check if the currently rendered object's index equals the current decal's target index.  
+	// If it does then we render the decal and increment the decal index to the next unrendered one.
 }
 
 
