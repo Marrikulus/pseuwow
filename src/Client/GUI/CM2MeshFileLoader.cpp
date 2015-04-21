@@ -862,7 +862,7 @@ void CM2MeshFileLoader::BuildANewSubMesh(CM2Mesh * CurrentMesh, u32 v, u32 i, u3
             MeshBuffer->getMaterial().FogEnable=(renderflags & 0x02)?false:true;
             MeshBuffer->getMaterial().BackfaceCulling=(renderflags & 0x04)?false:true;
 			//MeshBuffer->getMaterial().setFlag(video::EMF_ZBUFFER, (renderflags & 0x10)?false:true);
-			MeshBuffer->getMaterial().setFlag(video::EMF_ZWRITE_ENABLE, (renderflags & 0x10)?false:true);
+			MeshBuffer->getMaterial().ZWriteEnable=(renderflags & 0x10)?false:true;
             //We have a problem here      zwrite or ztest?
             //             MeshBuffer->getMaterial().ZBuffer=(renderflags & 0x10)?video::ECFN_LESS:video::ECFN_LESSEQUAL;
 
@@ -1024,7 +1024,7 @@ for(u16 S = 0; S < M2MSkins.size(); S++)
 		// Store parent bone for submesh so we can link submesh to bone
 		Submesh.RootBone = M2MBoneLookupTable[M2MSkins[S].M2MSubmeshes[s].unk4]; // M2MSkins[S].M2MSubmeshes[s].unk4;
 		Submesh.Radius = M2MSkins[S].M2MSubmeshes[s].Radius;
-		Submesh.LoaderIndex = s; // save an index to this submesh's current location so if this element is reordered we can still access its data in this loader
+		Submesh.SubmeshIndex = s; // save an index to this submesh's current location so if this element is reordered we can still access its data in this loader
 		// vertex range should be the same for all instances of a submesh regardless of current skin so 
 		// using it to name submeshes is a good way to prevent duplication while using multiple skins
 		std::ostringstream vertrange;
@@ -1035,8 +1035,8 @@ for(u16 S = 0; S < M2MSkins.size(); S++)
 		vertrange<< endvertrange;
 		Submesh.UniqueName = vertrange.str().c_str(); // save the submesh name, later when switching skins we check by this name if this submesh should be visible we reuse it updating its data for the current skin
 		
-		// get distance from camera
-		float closestDistance = 100000000.0f; //Arbitraty large number
+		/*// get distance from camera
+		float closestDistance = 100000000.0f; //Arbitrary large number
 		core::vector3df pos(11.11f,2.44f,-0.03f); //The position of the camera. To compare with.
 		u16 nearestvertex;
 		for (int j = M2MSkins[S].M2MSubmeshes[s].ofsVertex;j < M2MSkins[S].M2MSubmeshes[s].ofsVertex + M2MSkins[S].M2MSubmeshes[s].nVertex; j++) // loop through vertexes for this submesh
@@ -1084,7 +1084,7 @@ for(u16 S = 0; S < M2MSkins.size(); S++)
 		}
 		SubmeshBounds.push_back(tempBounds);  // ToDo:: compensate for the camera not looking down the z axis.  generate a rotation that will make z axis aline with camera axis without damaging geomatry 
 		                                      // and apply it to each value in tempBounds to make decal positioning easyer to think about
-
+*/
 				
 		// get all texture data for this submesh
 		for (u16 t = 0; t < M2MSkins[S].M2MTextureUnit.size(); t++)
@@ -1114,24 +1114,26 @@ for(u16 S = 0; S < M2MSkins.size(); S++)
 		}
 		// ToDo:: only do this sorting stuf for scenes
 		// Filter submeshes into groups by size.
-		if (Submesh.Radius >= 70) // if it is a large submeshs its part of the sky
+		/*if (Submesh.Radius >= 70) // if it is a large submesh its part of the sky
 		{
 			sky.push_back(Submesh);                  
 		}
 		if (Submesh.Radius < 70) // if this submesh isn't to big its a normal scene element 
 		{
 			scene.push_back(Submesh);
-		}
+		}*/
+		//scene.push_back(Submesh);
+		AnimatedMesh->Skins[S].Submeshes.push_back(Submesh);
 	}
-	FixDecalDistance(scene, SubmeshBounds);
-	FixDecalDistance(sky, SubmeshBounds);
-	sortDistance(sky);
-	sortDistance(scene);
-	for (u16 t = 0; t <sky.size()-1; t++){
+	//FixDecalDistance(scene, SubmeshBounds);
+	//FixDecalDistance(sky, SubmeshBounds);
+	//sortDistance(sky);
+	//sortDistance(scene);
+	/*for (u16 t = 0; t <sky.size()-1; t++){
 		if (t>0){sky[t].Distance = sky[0].Distance-t;} // distance ofset so that sequence remains correct if resorted later
 		AnimatedMesh->Skins[S].Submeshes.push_back(sky[t]);} // store data for skin/view in mesh
 	for (u16 t = 0; t <scene.size()-1; t++){
-		AnimatedMesh->Skins[S].Submeshes.push_back(scene[t]);}
+		AnimatedMesh->Skins[S].Submeshes.push_back(scene[t]);}*/
 	sky.clear();
 	scene.clear();
 }
@@ -1392,7 +1394,7 @@ std::string MeshFileName = Device->getFileSystem()->getFileBasename(MeshFile->ge
 if (std::mismatch(prefix.begin(), prefix.end(), MeshFileName.begin()).first == prefix.end()) // If MeshFileName begins with UI_
 //if ( strstr( MeshFileName.c_str(), "UI_" )) // if MeshFileName contains UI_
 {
-	u32 v = 0; // currently I am limiting skin usage to skin 0
+	u32 v = 0; // currently I am limiting skin usage to skin 0 this can be changed when i fix mpq load order
 	AnimatedMesh->SkinID = v; // remove this later as skinid is set when storing globals in the mesh
 	//for (u32 i = 0; i < M2MSkins[v].M2MSubmeshes.size(); i++)
 	for (u32 i = 0; i < AnimatedMesh->Skins[v].Submeshes.size(); i++)
@@ -1401,7 +1403,7 @@ if (std::mismatch(prefix.begin(), prefix.end(), MeshFileName.begin()).first == p
 		CM2Mesh *CurrentChildMesh = new scene::CM2Mesh(); // make a blank mesh
 		CopyAnimationsToMesh(CurrentChildMesh);
 		//BuildANewSubMesh(CurrentChildMesh, v, i); // assemble childmesh
-		BuildANewSubMesh(CurrentChildMesh, v, AnimatedMesh->Skins[v].Submeshes[i].LoaderIndex, i); // assemble childmesh
+		BuildANewSubMesh(CurrentChildMesh, v, AnimatedMesh->Skins[v].Submeshes[i].SubmeshIndex, i); // assemble childmesh
 		Device->getSceneManager()->getMeshManipulator()->flipSurfaces(CurrentChildMesh);
 		
 		// vertex range should be the same for all instances of a submesh regardless of current skin so 
@@ -1421,7 +1423,7 @@ else
 	//for (u32 i = 0; i < M2MSkins[v].M2MSubmeshes.size(); i++)
 	for (u32 i = 0; i < AnimatedMesh->Skins[v].Submeshes.size(); i++)
 	{
-		BuildANewSubMesh(AnimatedMesh, v, AnimatedMesh->Skins[v].Submeshes[i].LoaderIndex, i); //i);
+		BuildANewSubMesh(AnimatedMesh, v, AnimatedMesh->Skins[v].Submeshes[i].SubmeshIndex, i); //i);
 	}
 	Device->getSceneManager()->getMeshManipulator()->flipSurfaces(AnimatedMesh);
 }

@@ -357,7 +357,7 @@ private:
 				//s16 InsertHere = index; // index to insert after
 				while (index >= 0)
 				{
-					if(Dimensions[Submeshes[i].LoaderIndex].Wmax <= Dimensions[Submeshes[index].LoaderIndex].Wmax && Dimensions[Submeshes[i].LoaderIndex].Wmin >= Dimensions[Submeshes[index].LoaderIndex].Wmin && Dimensions[Submeshes[i].LoaderIndex].Hmax <= Dimensions[Submeshes[index].LoaderIndex].Hmax && Dimensions[Submeshes[i].LoaderIndex].Hmin >= Dimensions[Submeshes[i].LoaderIndex].Hmin)
+					if(Dimensions[Submeshes[i].SubmeshIndex].Wmax <= Dimensions[Submeshes[index].SubmeshIndex].Wmax && Dimensions[Submeshes[i].SubmeshIndex].Wmin >= Dimensions[Submeshes[index].SubmeshIndex].Wmin && Dimensions[Submeshes[i].SubmeshIndex].Hmax <= Dimensions[Submeshes[index].SubmeshIndex].Hmax && Dimensions[Submeshes[i].SubmeshIndex].Hmin >= Dimensions[Submeshes[i].SubmeshIndex].Hmin)
 					{
 						// decal distance must be only slightly less than distance of the submesh it falls on
 						Submeshes[i].Distance = Submeshes[index].Distance-0.0005;
