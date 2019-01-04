@@ -182,6 +182,32 @@ private:
     float old_char_o;
 };
 
+class SceneLoading : public Scene
+{/*
+    struct SceneNodeWithGridPos
+    {
+        scene::ISceneNode *Lscenenode;
+        uint32 gx,gy;
+    }; */
+
+public:
+    SceneLoading(PseuGUI *gui);
+    void OnUpdate(s32);
+	bool Finished;
+	bool LoadingTime;
+	uint32 doodadtotal;
+	uint32 loaded;
+	uint32 percent;
+	std::string ls_path;
+	std::list<std::string> AllDoodads;
+
+private:
+	IGUIImage *loadingscreen;
+	WorldSession *Lwsession;
+    World *Lworld;
+    MapMgr *Lmapmgr;
+    bool Ldebugmode;
+};
 
 
 #endif

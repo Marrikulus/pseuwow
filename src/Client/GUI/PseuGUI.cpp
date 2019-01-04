@@ -314,6 +314,7 @@ void PseuGUI::_UpdateSceneState(void)
             case SCENESTATE_GUISTART: _scene = new SceneGuiStart(this); break;
             case SCENESTATE_LOGINSCREEN: _scene = new SceneLogin(this); break;
             case SCENESTATE_WORLD: _scene = new SceneWorld(this); break;
+			case SCENESTATE_LOADING: _scene = new SceneLoading(this); break;
             case SCENESTATE_REALMSELECT:
                 _scene = new SceneCharSelection(this);
                 _scene->SetData(ISCENE_CHARSEL_REALMFIRST, 1);

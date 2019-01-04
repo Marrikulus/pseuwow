@@ -1,5 +1,10 @@
 # - try to find DirectX include dirs and libraries
 
+#ToDo add search pathes for the new windows sdk since directx sdk was merged into it
+
+# http://public.kitware.com/pipermail/cmake-developers/2014-October/023190.html
+# We now need to use "$ENV{ProgramFiles(x86)}" to avoid violating CMP0053.
+set (ProgramFiles_x86 "ProgramFiles(x86)")
 if (${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
 	find_path (DirectX_ROOT_DIR
 		Include/d3d9.h
@@ -14,15 +19,15 @@ if (${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
 			"$ENV{ProgramFiles}/Microsoft DirectX SDK (November 2007)"
 			"$ENV{ProgramFiles}/Microsoft DirectX SDK (August 2007)"
 			"$ENV{ProgramFiles}/Microsoft DirectX SDK"
-			"$ENV{ProgramFiles(x86)}/Microsoft DirectX SDK (June 2010)"
-			"$ENV{ProgramFiles(x86)}/Microsoft DirectX SDK (February 2010)"
-			"$ENV{ProgramFiles(x86)}/Microsoft DirectX SDK (March 2009)"
-			"$ENV{ProgramFiles(x86)}/Microsoft DirectX SDK (August 2008)"
-			"$ENV{ProgramFiles(x86)}/Microsoft DirectX SDK (June 2008)"
-			"$ENV{ProgramFiles(x86)}/Microsoft DirectX SDK (March 2008)"
-			"$ENV{ProgramFiles(x86)}/Microsoft DirectX SDK (November 2007)"
-			"$ENV{ProgramFiles(x86)}/Microsoft DirectX SDK (August 2007)"
-			"$ENV{ProgramFiles(x86)}/Microsoft DirectX SDK"
+			"${ProgramFiles_x86}/Microsoft DirectX SDK (June 2010)"
+			"${ProgramFiles_x86}/Microsoft DirectX SDK (February 2010)"
+			"${ProgramFiles_x86}/Microsoft DirectX SDK (March 2009)"
+			"${ProgramFiles_x86}/Microsoft DirectX SDK (August 2008)"
+			"${ProgramFiles_x86}/Microsoft DirectX SDK (June 2008)"
+			"${ProgramFiles_x86}/Microsoft DirectX SDK (March 2008)"
+			"${ProgramFiles_x86}/Microsoft DirectX SDK (November 2007)"
+			"${ProgramFiles_x86}/Microsoft DirectX SDK (August 2007)"
+			"${ProgramFiles_x86}/Microsoft DirectX SDK"
 		DOC "DirectX SDK root directory")
 
 

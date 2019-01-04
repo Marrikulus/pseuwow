@@ -70,6 +70,7 @@ class PseuGUI
 {
     //  too bad friends are not inherited...
     friend class Scene;
+	friend class SceneLoading;
     friend class SceneWorld;
     friend class SceneGuiStart;
     friend class SceneLogin;

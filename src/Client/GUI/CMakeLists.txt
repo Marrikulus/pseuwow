@@ -18,6 +18,7 @@ Scene.cpp
 SceneGuiStart.cpp
 SceneLogin.cpp
 SceneWorld.cpp
+SceneLoading.cpp
 ShTlTerrainSceneNode.cpp
 CM2Mesh.cpp
 )

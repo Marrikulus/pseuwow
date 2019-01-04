@@ -16,10 +16,12 @@ tutorial, we use a lot stuff from the gui namespace.
 #include <irrlicht/irrlicht.h>
 #include <iostream>
 #include "common.h"
+#include "os.h"
 #include "GUI/CM2MeshFileLoader.h"
 #include "GUI/CWMOMeshFileLoader.h"
 #include "GUI/MemoryInterface.h"
 #include "MemoryDataHolder.h"
+#include "GUI/CM2MeshSceneNode.h"
 
 
 using namespace irr;
@@ -39,8 +41,10 @@ core::stringw MessageText;
 core::stringw Caption;
 scene::ISceneNode* Model = 0;
 scene::ISceneNode* SkyBox = 0;
+CM2MeshSceneNodeFactory *fact;
 gui::IGUITreeView* TreeView = 0;
 bool Octree=false;
+
 
 scene::ICameraSceneNode* Camera[3] = {0, 0, 0};
 
@@ -201,7 +205,7 @@ void loadModel(const c8* fn)
     treeroot->setExpanded(true);
     for(u32 i=0;i<m->getMeshBufferCount();i++)
     {
-      core::stringw nodename(L"Submesh ");
+      core::stringw nodename(L"Submesh "); 
       nodename += i;
       IGUITreeViewNode* treenode = treeroot->addChildBack(nodename.c_str());
       treenode->setExpanded(true);
@@ -239,14 +243,142 @@ void loadModel(const c8* fn)
 //     e->setText(str.c_str());
 	// set default material properties
 
+	//Log submesh info since treview can't side scroll
+	FILE* s = fopen("viewer_submesh.txt","w");
+	for(u32 i=0;i<((scene::CM2Mesh*)(m))->Skins[((scene::CM2Mesh*)(m))->SkinID].Submeshes.size();i++)
+    {  
+		// ToDo:: rewrite the folowing section using one ostringstream to create the line of text and one write to the file per loop
+	  // Create String handlers
+      std::string info = "Submesh ";
+	  std::ostringstream number;
+	  std::ostringstream SubMeshMode;
+	  std::ostringstream ShaderType; // is it a decal? etc...
+	  std::ostringstream Block;
+	  std::ostringstream RootBone;
+	  std::ostringstream Radius;
+	  std::ostringstream ZDepth;
+	  std::ostringstream Dist;
+	  std::ostringstream M2SubmeshID; // submesh's index in the m2/skin files 
+	  // Slip titles into handlers
+	  SubMeshMode<< "  Mode:";
+	  ShaderType<< " ShaderType:";
+	  Block<< " Block:";
+	  RootBone<< " RootBone:";
+	  Radius<< " Radius:";
+	  ZDepth<< "Depth, Back:";
+	  Dist<< "Distance: ";
+	  M2SubmeshID<< " M2Submesh# ";
+	  number<<  i;
+	  // Put the data into the Handlers and Print it to the File
+	  info += number.str();
+	  fwrite(info.c_str(),1,info.size(),s); // print to file
+	  fseek(s,1,true); // Isert space in File
+      info = "Texture: ";
+	  fwrite(info.c_str(),1,info.size(),s); // print to file
+	  fseek(s,1,true); // Insert space in File
+      // Get texture path and name
+	  info = ((scene::CM2Mesh*)(m))->Textures[((scene::CM2Mesh*)(m))->Skins[((scene::CM2Mesh*)(m))->SkinID].Submeshes[i].Textures[0].Path].c_str();
+	  fwrite(info.c_str(),1,info.size(),s); // print to file
+	  fseek(s,1,true); // Isert space in File
+
+      info = "Material Type: ";
+      switch(((scene::CM2Mesh*)(m))->Skins[((scene::CM2Mesh*)(m))->SkinID].Submeshes[i].Textures[0].BlendFlag)
+      {
+	  case 0:
+          info += "SOLID";
+          break;
+	  case 1:
+          info += "ALPHA_REF";
+          break;
+	  case 2:
+          info += "ALPHA_BLEND";
+          break;
+	  case 3:
+		  info += "ADDITIVE";
+		  break;
+	  case 4:
+		  info += "ADDITIVE_ALPHA";
+		  break;
+	  case 5:
+		  info += "MODULATE";
+		  break;
+	  case 6:
+		  info += "MODULATE_2X ?";
+		  break;
+      }
+	  fwrite(info.c_str(),1,info.size(),s); 
+	  M2SubmeshID<< ((scene::CM2Mesh*)(m))->Skins[((scene::CM2Mesh*)(m))->SkinID].Submeshes[i].SubmeshIndex; // get the submesh index relative to the m2/skin files
+	  std::string m2sid = M2SubmeshID.str();
+	  fwrite(m2sid.c_str(),1,m2sid.size(),s); // print to file
+	  fseek(s,1,true); // Isert space in File
+      SubMeshMode<< ((scene::CM2Mesh*)(m))->Skins[((scene::CM2Mesh*)(m))->SkinID].Submeshes[i].Textures[0].Mode; //get submesh's mode
+	  std::string Mode = SubMeshMode.str();
+	  fwrite(Mode.c_str(),1,Mode.size(),s); // print to file
+	  fseek(s,1,true); // Isert space in File
+	  ShaderType<< ((scene::CM2Mesh*)(m))->Skins[((scene::CM2Mesh*)(m))->SkinID].Submeshes[i].Textures[0].shaderType; //((scene::CM2Mesh*)(m))->BufferMap[i].order;
+	  Block<< ((scene::CM2Mesh*)(m))->Skins[((scene::CM2Mesh*)(m))->SkinID].Submeshes[i].Textures[0].Block;
+	  RootBone<< ((scene::CM2Mesh*)(m))->Skins[((scene::CM2Mesh*)(m))->SkinID].Submeshes[i].RootBone;         //BufferMap[i].unknown;
+	  Radius<< ((scene::CM2Mesh*)(m))->Skins[((scene::CM2Mesh*)(m))->SkinID].Submeshes[i].Radius;
+	  Dist<< ((scene::CM2Mesh*)(m))->Skins[((scene::CM2Mesh*)(m))->SkinID].Submeshes[i].Distance;
+	  //ZDepth<< ((scene::CM2Mesh*)(m))->BufferMap[i].Back;
+	  //ZDepth<< "Front,";
+	  //ZDepth<< ((scene::CM2Mesh*)(m))->BufferMap[i].Front;
+	  //ZDepth<< "Middle,";
+	  //ZDepth<< ((scene::CM2Mesh*)(m))->BufferMap[i].Middle;
+	  std::string TypeOfShader = ShaderType.str();
+	  std::string block = Block.str();
+	  std::string bone = RootBone.str();
+	  std::string radius = Radius.str();
+	  std::string distance = Dist.str();
+	  //std::string zdepth = ZDepth.str();
+	  fwrite(TypeOfShader.c_str(),1,TypeOfShader.size(),s);  // print to file
+	  fseek(s,1,true); // Isert space in File
+	  fwrite(block.c_str(),1,block.size(),s);  // print to file
+	  fseek(s,1,true); // Isert space in File
+	  fwrite(bone.c_str(),1,bone.size(),s); // print to file
+	  fseek(s,1,true); // Isert space in File
+	  fwrite(radius.c_str(),1,radius.size(),s); // print to file
+	  fseek(s,1,true); // Isert space in File
+	  fwrite(distance.c_str(),1,distance.size(),s); // print to file
+	  fseek(s,1,true); // Isert space in File
+	  //fwrite(zdepth.c_str(),1,zdepth.size(),s); // print to file
+	  //fseek(s,1,true); // Isert space in File
+      /*info = "FogEnable: ";
+      info += m->getMeshBuffer(i)->getMaterial().FogEnable?"true":"false";
+	  fwrite(info.c_str(),1,info.size(),s); // print to file
+	  fseek(s,1,true); // Isert space in File
+      info = "BackfaceCulling: ";
+      info += m->getMeshBuffer(i)->getMaterial().BackfaceCulling?"true":"false";
+	  fwrite(info.c_str(),1,info.size(),s); // print to file
+	  fseek(s,1,true); // Isert space in File
+	  */std::ostringstream flag;
+	  flag<< "RenderFlag: ";
+      flag<< ((scene::CM2Mesh*)(m))->Skins[((scene::CM2Mesh*)(m))->SkinID].Submeshes[i].Textures[0].RenderFlag;
+	  std::string RFlag = flag.str();
+	  fwrite(RFlag.c_str(),1,RFlag.size(),s); // print to file
+	  fseek(s,1,true); // Isert space in File
+	  fwrite("\r\n",1,4,s); //set eol (end of line)
+    }
+	fclose(s);
+	//end log
+
 	if (Octree)
 		Model = Device->getSceneManager()->addOctTreeSceneNode(m->getMesh(0));
 	else
 	{
-		scene::IAnimatedMeshSceneNode* animModel = Device->getSceneManager()->addAnimatedMeshSceneNode(m);
+		scene::CM2MeshSceneNode* animModel = ((scene::CM2MeshSceneNode*)(fact->addM2SceneNode(m,NULL)));
+		((scene::CM2Mesh*)(m))->findExtremes();
+		animModel->setSkinId(0); //((scene::CM2Mesh*)(m))->SkinID); //set node to use default skin provided by mesh. ToDo:: fix mpq multi skin loading and remove SkinId from cm2mesh
+		animModel->setSubmeshSorting(true);
+		//scene::CM2MeshSceneNode* animModel = new CM2MeshSceneNode(m,Device->getSceneManager()->getRootSceneNode(),Device->getSceneManager(),-1);
+		//scene::IAnimatedMeshSceneNode* animModel = Device->getSceneManager()->addAnimatedMeshSceneNode(m);
+		//core::array<scene::IBoneSceneNode*> ChildBoneSceneNodes;
+		//((scene::CM2Mesh*)(m))->createJoints(ChildBoneSceneNodes, animModel, Device->getSceneManager());
+		//((scene::CM2Mesh*)(m))->LinkChildMeshes(animModel, Device->getSceneManager(), ChildBoneSceneNodes); // link child mesh nodes
 		animModel->setAnimationSpeed(1000);
         animModel->setM2Animation(0);
 		Model = animModel;
+		//ChildBoneSceneNodes.clear();
 	}
 	Model->setDebugDataVisible(scene::EDS_OFF);
 	// we need to uncheck the menu entries. would be cool to fake a menu event, but
@@ -756,6 +888,11 @@ int main(int argc, char* argv[])
 	video::IVideoDriver* driver = Device->getVideoDriver();
 	IGUIEnvironment* env = Device->getGUIEnvironment();
 	scene::ISceneManager* smgr = Device->getSceneManager();
+	
+	fact = new CM2MeshSceneNodeFactory(smgr);
+	smgr->registerSceneNodeFactory(fact);
+
+	//smgr->getParameters()->setAttribute(scene::ALLOW_ZWRITE_ON_TRANSPARENT, true); // test if fix alpha blend order
 	smgr->getParameters()->setAttribute(scene::COLLADA_CREATE_SCENE_INSTANCES, true);
 
     // register external loaders for not supported filetypes
@@ -949,6 +1086,11 @@ int main(int argc, char* argv[])
 
             env->drawAll();
 
+			video::SMaterial mat = video::SMaterial();
+			mat.Lighting = false;
+			driver->setMaterial(mat);
+			driver->draw3DBox(Camera[2]->getViewFrustum()->getBoundingBox(),video::SColor(255,255,0,255));
+
 			driver->endScene();
 
 			core::stringw str(L"FPS: ");
@@ -984,6 +1126,3 @@ int main(int argc, char* argv[])
 	Device->drop();
 	return 0;
 }
-
-/*
-**/

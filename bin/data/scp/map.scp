@@ -2,10 +2,12 @@
 [0]
 name_general=Azeroth
 name=Eastern Kingdoms
+loadingscreen=4
 
 [1]
 name_general=Kalimdor
 name=Kalimdor
+loadingscreen=3
 
 [13]
 name_general=test
@@ -15,33 +17,47 @@ name=Testing
 name_general=ScottTest
 name=Scott Test
 
-[29]
-name_general=Test
-name=CashTest
-
 [30]
 name_general=PVPZone01
 name=Alterac Valley
+descrA=Hidden within the Alterac Mountains, Alterac Valley is the home of Thrall's own clan of orcs, the Frostwolves.
+
+The Stormpike dwarves have established a foothold in the valley and seek to plumb its depths for riches and links to their ancestral past.
+
+The territorial Frostwolves, unwilling to suffer the dwarven incursion, have rallied an army... an army eager for righteous slaughter.
+descrH=Hidden within the Alterac Mountains, Alterac Valley is the home of Thrall's own clan of orcs, the Frostwolves.
+
+The Stormpike dwarves have established a foothold in the valley and seek to plumb its depths for riches and links to their ancestral past.
+
+The territorial Frostwolves, unwilling to suffer the dwarven incursion, have rallied an army... an army eager for righteous slaughter.
+loadingscreen=104
 
 [33]
 name_general=Shadowfang
 name=Shadowfang Keep
+loadingscreen=204
 
 [34]
 name_general=StormwindJail
 name=Stormwind Stockade
+loadingscreen=194
 
 [35]
 name_general=StormwindPrison
 name=<unused>StormwindPrison
+loadingscreen=23
 
 [36]
 name_general=DeadminesInstance
 name=Deadmines
+loadingscreen=142
 
 [37]
 name_general=PVPZone02
 name=Azshara Crater
+descrA=Crush the Alliance!
+descrH=Defend yourself from the onslaught of the Horde!
+loadingscreen=25
 
 [42]
 name_general=Collin
@@ -50,34 +66,42 @@ name=Collin's Test
 [43]
 name_general=WailingCaverns
 name=Wailing Caverns
+loadingscreen=143
 
 [44]
 name_general=Monastery
 name=<unused> Monastery
+loadingscreen=42
 
 [47]
 name_general=RazorfenKraulInstance
 name=Razorfen Kraul
+loadingscreen=188
 
 [48]
 name_general=Blackfathom
 name=Blackfathom Deeps
+loadingscreen=196
 
 [70]
 name_general=Uldaman
 name=Uldaman
+loadingscreen=144
 
 [90]
 name_general=GnomeragonInstance
 name=Gnomeregan
+loadingscreen=193
 
 [109]
 name_general=SunkenTemple
 name=Sunken Temple
+loadingscreen=191
 
 [129]
 name_general=RazorfenDowns
 name=Razorfen Downs
+loadingscreen=145
 
 [169]
 name_general=EmeraldDream
@@ -86,206 +110,287 @@ name=Emerald Dream
 [189]
 name_general=MonasteryInstances
 name=Scarlet Monastery
+loadingscreen=190
 
 [209]
 name_general=TanarisInstance
 name=Zul'Farrak
+loadingscreen=146
 
 [229]
 name_general=BlackRockSpire
 name=Blackrock Spire
+loadingscreen=189
 
 [230]
 name_general=BlackrockDepths
 name=Blackrock Depths
+loadingscreen=103
 
 [249]
 name_general=OnyxiaLairInstance
 name=Onyxia's Lair
+loadingscreen=61
 
 [269]
 name_general=CavernsOfTime
 name=Opening of the Dark Portal
+loadingscreen=212
 
 [289]
 name_general=SchoolofNecromancy
 name=Scholomance
+loadingscreen=102
 
 [309]
 name_general=Zul'gurub
 name=Zul'Gurub
+loadingscreen=161
 
 [329]
 name_general=Stratholme
 name=Stratholme
+loadingscreen=101
 
 [349]
 name_general=Mauradon
 name=Maraudon
+loadingscreen=81
 
 [369]
 name_general=DeeprunTram
 name=Deeprun Tram
+loadingscreen=205
 
 [389]
 name_general=OrgrimmarInstance
 name=Ragefire Chasm
+loadingscreen=195
 
 [409]
 name_general=MoltenCore
 name=Molten Core
+loadingscreen=192
 
 [429]
 name_general=DireMaul
 name=Dire Maul
+loadingscreen=82
 
 [449]
 name_general=AlliancePVPBarracks
 name=Alliance PVP Barracks
+loadingscreen=181
 
 [450]
 name_general=HordePVPBarracks
 name=Horde PVP Barracks
+loadingscreen=182
 
 [451]
 name_general=development
 name=Development Land
+loadingscreen=21
 
 [469]
 name_general=BlackwingLair
 name=Blackwing Lair
+loadingscreen=141
 
 [489]
 name_general=PVPZone03
 name=Warsong Gulch
+descrA=A valley bordering Ashenvale Forest and the Barrens, Warsong Gulch hosts a constant battle between the Horde and the Alliance.
+
+Orcs use their Warsong Mill to cut lumber reaped from Ashenvale, provoking the night elves of Silverwing Hold.
+
+Eager to aid their allies, members of every race in Azeroth rush to the Gulch to lend sword, or spell, to the conflict.
+descrH=A valley bordering Ashenvale Forest and the Barrens, Warsong Gulch hosts a constant battle between the Horde and the Alliance.
+
+Orcs use their Warsong Mill to cut lumber reaped from Ashenvale, provoking the night elves of Silverwing Hold.
+
+Eager to aid their allies, members of every race in Azeroth rush to the Gulch to lend sword, or spell, to the conflict.
+loadingscreen=122
 
 [509]
 name_general=AhnQiraj
 name=Ruins of Ahn'Qiraj
+loadingscreen=184
 
 [529]
 name_general=PVPZone04
 name=Arathi Basin
+descrA=The Arathi Basin is one of the main staging points of war between the humans and the Forsaken in Azeroth.
+
+The Defiler's elite troopers seek to sever the vital connection between the humans and their dwarven allies to the south.
+
+Meanwhile, the League of Arathor seek to reclaim lost lands for their benefactors in Stormwind.
+descrH=The Arathi Basin is one of the main staging points of war between the humans and the Forsaken in Azeroth.
+
+The League of Arathor seek to reclaim lost lands for their benefactors in Stormwind.
+
+Meanwhile, the Defiler's elite troopers seek to sever the vital connection between the humans and their dwarven allies to the south.
+loadingscreen=183
 
 [530]
 name_general=Expansion01
 name=Outland
+loadingscreen=198
 
 [531]
 name_general=AhnQirajTemple
 name=Ahn'Qiraj Temple
+loadingscreen=185
 
 [532]
 name_general=Karazahn
 name=Karazhan
+loadingscreen=200
 
 [533]
 name_general=Stratholme Raid
 name=Naxxramas
+loadingscreen=197
 
 [534]
 name_general=HyjalPast
 name=The Battle for Mount Hyjal
+loadingscreen=212
 
 [540]
 name_general=HellfireMilitary
 name=Hellfire Citadel: The Shattered Halls
+loadingscreen=199
 
 [542]
 name_general=HellfireDemon
 name=Hellfire Citadel: The Blood Furnace
+loadingscreen=199
 
 [543]
 name_general=HellfireRampart
 name=Hellfire Citadel: Ramparts
+loadingscreen=199
 
 [544]
 name_general=HellfireRaid
 name=Magtheridon's Lair
+loadingscreen=208
 
 [545]
 name_general=CoilfangPumping
 name=Coilfang: The Steamvault
+loadingscreen=207
 
 [546]
 name_general=CoilfangMarsh
 name=Coilfang: The Underbog
+loadingscreen=207
 
 [547]
 name_general=CoilfangDraenei
 name=Coilfang: The Slave Pens
+loadingscreen=207
 
 [548]
 name_general=CoilfangRaid
 name=Coilfang: Serpentshrine Cavern
+loadingscreen=207
 
 [550]
 name_general=TempestKeepRaid
 name=Tempest Keep
+loadingscreen=206
 
 [552]
 name_general=TempestKeepArcane
 name=Tempest Keep: The Arcatraz
+loadingscreen=206
 
 [553]
 name_general=TempestKeepAtrium
 name=Tempest Keep: The Botanica
+loadingscreen=206
 
 [554]
 name_general=TempestKeepFactory
 name=Tempest Keep: The Mechanar
+loadingscreen=206
 
 [555]
 name_general=AuchindounShadow
 name=Auchindoun: Shadow Labyrinth
+loadingscreen=201
 
 [556]
 name_general=AuchindounDemon
 name=Auchindoun: Sethekk Halls
+loadingscreen=201
 
 [557]
 name_general=AuchindounEthereal
 name=Auchindoun: Mana-Tombs
+loadingscreen=201
 
 [558]
 name_general=AuchindounDraenei
 name=Auchindoun: Auchenai Crypts
+loadingscreen=201
 
 [559]
 name_general=PVPZone05
 name=Nagrand Arena
+loadingscreen=219
 
 [560]
 name_general=HillsbradPast
 name=The Escape From Durnholde
+loadingscreen=212
 
 [562]
 name_general=bladesedgearena
 name=Blade's Edge Arena
+loadingscreen=218
 
 [564]
 name_general=BlackTemple
 name=Black Temple
+loadingscreen=215
 
 [565]
 name_general=GruulsLair
 name=Gruul's Lair
+loadingscreen=213
 
 [566]
 name_general=NetherstormBG
 name=Eye of the Storm
+descrA=Hovering high above the ravaged landscape of Netherstorm is the island known as the Eye of the Storm.
+
+This battlefield is coveted by the blood elves for its rich energy deposits.
+
+The draenei seek to claim it due to its proximity to the naaru's mysterious vessel, Tempest Keep.
+descrH=Hovering high above the ravaged landscape of Netherstorm is the island known as the Eye of the Storm.
+
+The draenei seek to claim it due to its proximity to the naaru's mysterious vessel, Tempest Keep.
+
+This battlefield is coveted by the blood elves for its rich energy deposits.
+loadingscreen=210
 
 [568]
 name_general=ZulAman
 name=Zul'Aman
+loadingscreen=214
 
 [571]
 name_general=Northrend
 name=Northrend
+loadingscreen=216
 
 [572]
 name_general=PVPLordaeron
 name=Ruins of Lordaeron
+loadingscreen=217
 
 [573]
 name_general=ExteriorTest
@@ -294,22 +399,27 @@ name=ExteriorTest
 [574]
 name_general=Valgarde70
 name=Utgarde Keep
+loadingscreen=220
 
 [575]
 name_general=UtgardePinnacle
 name=Utgarde Pinnacle
+loadingscreen=221
 
 [576]
 name_general=Nexus70
 name=The Nexus
+loadingscreen=226
 
 [578]
 name_general=Nexus80
 name=The Oculus
+loadingscreen=227
 
 [580]
 name_general=SunwellPlateau
 name=The Sunwell
+loadingscreen=225
 
 [582]
 name_general=Transport176244
@@ -322,6 +432,7 @@ name=Transport: Menethil to Theramore
 [585]
 name_general=Sunwell5ManFix
 name=Magister's Terrace
+loadingscreen=224
 
 [586]
 name_general=Transport181645
@@ -362,6 +473,7 @@ name=Transport: Howling Fjord Sister Mercy (Quest)
 [595]
 name_general=StratholmeCOT
 name=The Culling of Stratholme
+loadingscreen=222
 
 [596]
 name_general=Transport187263
@@ -374,50 +486,68 @@ name=Craig Test
 [598]
 name_general=Sunwell5Man
 name=Sunwell Fix (Unused)
+loadingscreen=4
 
 [599]
 name_general=Ulduar70
 name=Halls of Stone
+loadingscreen=230
 
 [600]
 name_general=DrakTheronKeep
 name=Drak'Tharon Keep
+loadingscreen=228
 
 [601]
 name_general=Azjol_Uppercity
 name=Azjol-Nerub
+loadingscreen=229
 
 [602]
 name_general=Ulduar80
 name=Halls of Lightning
+loadingscreen=231
 
 [603]
 name_general=UlduarRaid
 name=Ulduar
+loadingscreen=244
 
 [604]
 name_general=GunDrak
 name=Gundrak
+loadingscreen=237
 
 [605]
 name_general=development_nonweighted
 name=Development Land (non-weighted textures)
+loadingscreen=21
 
 [606]
 name_general=QA_DVD
 name=QA and DVD
+loadingscreen=21
 
 [607]
 name_general=NorthrendBG
 name=Strand of the Ancients
+descrA=To the south of Dragonblight lies the resting place of a legendary Titan artifact, known by the Alliance and Horde to possess critical information regarding the Titans and their methods.
+
+Prepare yourself for battle, for fate cannot determine success upon this Strand of the Ancients.
+descrH=To the south of Dragonblight lies the resting place of a legendary Titan artifact, known by the Alliance and Horde to possess critical information regarding the Titans and their methods.
+
+Prepare yourself for battle, for fate cannot determine success upon this Strand of the Ancients.
+loadingscreen=238
 
 [608]
 name_general=DalaranPrison
 name=Violet Hold
+loadingscreen=235
 
 [609]
 name_general=DeathKnightStart
 name=Ebon Hold
+loadingscreen=233
 
 [610]
 name_general=Transport_Tirisfal _Vengeance_Landing
@@ -438,22 +568,27 @@ name=Transport: Stormwind to Valiance Keep
 [615]
 name_general=ChamberOfAspectsBlack
 name=The Obsidian Sanctum
+loadingscreen=239
 
 [616]
 name_general=NexusRaid
 name=The Eye of Eternity
+loadingscreen=236
 
 [617]
 name_general=DalaranArena
 name=Dalaran Sewers
+loadingscreen=242
 
 [618]
 name_general=OrgrimmarArena
 name=The Ring of Valor
+loadingscreen=240
 
 [619]
 name_general=Azjol_LowerCity
 name=Ahn'kahet: The Old Kingdom
+loadingscreen=234
 
 [620]
 name_general=Transport_Moa'ki_Unu'pe
@@ -474,4 +609,91 @@ name=Transport: The Skybreaker
 [624]
 name_general=WintergraspRaid
 name=Vault of Archavon
+loadingscreen=243
+
+[628]
+name_general=IsleofConquest
+name=Isle of Conquest
+descrA=The Isle of Conquest is a point of strategic importance for the Alliance and Horde campaigns in Northrend.
+
+Serving as an ideal staging ground for operations in Icecrown, each side is determined to secure control of the island.
+
+With the 7th Legion and the Kor'kron Guard locked in deadly combat, both factions have issued a call to arms in hopes of tipping the scales in their favor and defeating the opposing general.
+descrH=The Isle of Conquest is a point of strategic importance for the Alliance and Horde campaigns in Northrend.
+
+Serving as an ideal staging ground for operations in Icecrown, each side is determined to secure control of the island.
+
+With the 7th Legion and the Kor'kron Guard locked in deadly combat, both factions have issued a call to arms in hopes of tipping the scales in their favor and defeating the opposing general.
+loadingscreen=245
+
+[631]
+name_general=IcecrownCitadel
+name=Icecrown Citadel
+loadingscreen=250
+
+[632]
+name_general=IcecrownCitadel5Man
+name=The Forge of Souls
+loadingscreen=249
+
+[641]
+name_general=Transport_AllianceAirshipBG
+name=Transport: Alliance Airship BG
+
+[642]
+name_general=Transport_HordeAirshipBG
+name=Transport: HordeAirshipBG
+
+[647]
+name_general=Transport_Orgrimmar_to_Thunderbluff
+name=Transport: Orgrimmar to Thunder Bluff
+
+[649]
+name_general=ArgentTournamentRaid
+name=Trial of the Crusader
+loadingscreen=246
+
+[650]
+name_general=ArgentTournamentDungeon
+name=Trial of the Champion
+loadingscreen=247
+
+[658]
+name_general=QuarryofTears
+name=Pit of Saron
+loadingscreen=252
+
+[668]
+name_general=HallsOfReflection
+name=Halls of Reflection
+loadingscreen=253
+
+[672]
+name_general=Transport197347
+name=Transport: The Skybreaker (Icecrown Citadel Raid)
+
+[673]
+name_general=Transport197348
+name=Transport: Orgrim's Hammer (Icecrown Citadel Raid)
+
+[712]
+name_general=Transport197349
+name=Transport: The Skybreaker (IC Dungeon)
+
+[713]
+name_general=Transport197350
+name=Transport: Orgrim's Hammer (IC Dungeon)
+
+[718]
+name_general=Transport201834
+name=Trasnport: The Mighty Wind (Icecrown Citadel Raid)
+
+[723]
+name_general=Stormwind
+name=Stormwind
+
+[724]
+name_general=ChamberofAspectsRed
+name=The Ruby Sanctum
+loadingscreen=254
 

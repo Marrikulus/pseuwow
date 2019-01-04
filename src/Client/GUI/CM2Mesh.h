@@ -2,6 +2,7 @@
 #define __M2_MESH_H_INCLUDED__
 
 #include "irrlicht/irrlicht.h"
+#include <limits>
 
 namespace irr
 {
@@ -155,6 +156,95 @@ namespace scene
         void setGeoSetRender(u32 id, bool render);
         void setMBRender(u32 id, bool render);
         bool getGeoSetRender(u32 meshbufferNumber);
+		//Submesh Array containing data for each submesh sorted for proper render order
+		struct BufferInfo{  //Submesh Data Element
+			u16 ID;
+			u16 Mode;
+			s16 order;
+			u16 block;
+			u16 blend;
+			u16 flag;       // Renderflag
+			u16 unknown;    // still no clue what this is
+			bool solid;
+			bool animatedtexture;
+			core::vector3df Coordinates; // Center point of an aabb
+			float Back;     // Far Edge
+			float Middle;   // Center
+			float Front;    // Near Edge
+			float SortPoint; // We set this to back middle or front
+			float Radius;
+			float Xpos;     // Right Edge
+			float Xneg;     // Left Edge
+			float Ypos;     // Top Edge
+			float Yneg;     // Bottom Edge
+		};
+		core::array<BufferInfo> BufferMap; // The Array to Map out my Submesh Data Element order
+		//add light nodes
+		struct Lights{
+			u16 Type;
+			s16 Bone;
+			core::vector3df Position;  //if these are to be animated then at the end of this struct should be arrays for the timestamps
+			video::SColorf AmbientColor;  // AmbientIntensity is in AmbientColor.a;
+			video::SColorf DiffuseColor;  // DiffuseIntensity is in DiffuseColor.a;
+			float AttenuationStart;
+			float AttenuationEnd;
+			u32 Unknown;  //probably wont use this since wowdev doesn't know what it is for. may be for enable shadows since its usualy 1
+		};
+
+		core::array<Lights> M2MLights;
+		void attachM2Lights(IAnimatedMeshSceneNode *Node, ISceneManager *smgr); //lumirion's test
+		
+		// global textures
+		core::array<io::path> Textures;
+
+		// .Skins views
+		struct texture{
+			u16 TextureNumber; // a submesh can have up to 3 textures
+			u16 Path;  //  pointer into global list of texure paths&names cm2mesh::Textures
+			bool animated;     
+			u16 RenderFlag; 
+			u16 BlendFlag;
+			s16 shaderType;   // actualy 2 u8 shader flags
+			u16 Mode;  // helps indicate shader?  opcount:: texture, UV animation, render flags, and transparency indices in this stuct point to start index opcount/mode = how many values to get
+			u16 Block; // = some sort of render flag indicating submesh grouping&order
+			//pointers to animations
+			u16 VertexColor;  // needs to point directly into cm2mesh::VertexColor or =-1 for no color
+			u16 transparency; // needs to = transparencylookup[textureunit.transparency] to point into the global CM2Mesh::Transparency
+			u16 uvanimation;  // needs to = uvanimationlookup[textureunit.texAnimIndex] to point into the global CM2Mesh::UVAnimations
+		};
+		struct submesh{
+			u32 MeshPart;             // indcates head or hand or other parts.  Could do this as a string
+			u16 RootBone;             // index to bone/joint this submesh attaches to
+			float Radius;
+			float Distance;           // distance between built in camera and submeshe's nearest vertex
+			u16 NearestVertex;        // index to this submeshes vertex nearest the camera
+			core::stringc UniqueName; // id for the submesh incase submesh's geometry exists in multiple .skins.  Id should look like StartVertex_EndVertex.  maybe list bones for this submesh too
+			u16 SubmeshIndex;         // index to this submesh's data in the .skin file and CM2MeshFileLoader's arrays
+			u16 BufferIndex;          // index to this submesh's buffer in this mesh
+			irr::core::array <texture> Textures; // this submesh's texture descriptions (should be limited to 3)
+		};
+		struct skin{
+			u16 ID; // xx.skin id like 0, 1, 2 etc...  // don't need this its redundant. It is the same as this skin's index in Skins
+			irr::core::array <submesh> Submeshes; // submeshes in this view
+		};
+
+		core::array<skin> Skins;
+		u32 SkinID; // points to active skin.  This belongs in CM2MeshSceneNode not here
+		void LinkChildMeshes(IAnimatedMeshSceneNode *UI_ParentMeshNode, ISceneManager *smgr, core::array<IBoneSceneNode*> &JointChildSceneNodes); // use this for UI (scene) meshes
+		// ToDo:: add an array of unique preconfigured materials to replace part of texture element new texture element will index its material
+		// ToDo:: add a function to return a list of visible submeshes for the scenenode to render. All possible submeshes for all views should be added to the mesh
+
+		////////////////////
+		// submesh extream points
+		////////////////////
+		struct BufferPointGroup                            // A structure to store a group of indexes to the extream points of a single submesh buffer
+		{
+			core::array <u32> indexes;
+		};
+		core::array <BufferPointGroup> ExtreamPointGroups;  // Holds all the groups of extremes for all the submesh buffers
+		void findExtremes();
+		void getDist_NearandFar_ofSubmesh(u32 submeshID, float &near, float &far, const core::vector3df camPos, core::vector3df camNormal); // gets the distance to nearest and farthest point of a submesh from a camera plane's origen
+
 private:
 
 		void checkForAnimation();
@@ -209,6 +299,86 @@ private:
 
         core::array< M2Animation > Animations;
         core::map<u32, core::array<u32> > AnimationLookup;
+
+		// A structure to track a Group of vetex Points in a submesh.
+		// It contains functions to subdivide and find the extreme points of a submesh.
+		// Adapted from ogre3d 
+		struct Group_of_Points
+		{
+			core::aabbox3d<float> Box;
+			core::list<u32> mIndices;
+
+			Group_of_Points ()
+			{ }
+
+			bool empty () const
+			{
+				if (mIndices.empty ())
+					return true;
+				if (Box.MinEdge == Box.MaxEdge)
+					return true;
+				return false;
+			}
+
+			float volume () const
+			{
+				return (Box.MaxEdge.X - Box.MinEdge.X) * (Box.MaxEdge.Y - Box.MinEdge.Y) * (Box.MaxEdge.Z - Box.MinEdge.Z);
+			}
+        
+			float getValueByAxis_FromVector(u32 Axis, core::vector3df V)
+			{
+				if(Axis==1){return V.X;}
+				else if(Axis==2){return V.Y;}
+				else if(Axis==3){return V.Z;}
+			}
+
+			void extend (core::vector3df v)
+			{
+				if (v.X < Box.MinEdge.X) Box.MinEdge.X = v.X;
+				if (v.Y < Box.MinEdge.Y) Box.MinEdge.Y = v.Y;
+				if (v.Z < Box.MinEdge.Z) Box.MinEdge.Z = v.Z;
+				if (v.X > Box.MaxEdge.X) Box.MaxEdge.X = v.X;
+				if (v.Y > Box.MaxEdge.Y) Box.MaxEdge.Y = v.Y;
+				if (v.Z > Box.MaxEdge.Z) Box.MaxEdge.Z = v.Z;
+			}
+
+			void computeBBox (scene::IMeshBuffer *submesh) // resize box around its vertices
+			{
+				// make the box imposibly small
+				Box.MinEdge.X = Box.MinEdge.Y = Box.MinEdge.Z = std::numeric_limits<float>::infinity(); // set near value imposibly far out of range
+				Box.MaxEdge.X = Box.MaxEdge.Y = Box.MaxEdge.Z = -std::numeric_limits<float>::infinity(); // set the far value imposibly near out of range
+
+				for (core::list<u32>::Iterator i = mIndices.begin (); i != mIndices.end (); ++i)
+				{
+					extend (submesh->getPosition(*i)); // expand box to include the vertex indicated by current Index 
+				}
+			}
+
+			Group_of_Points split (u32 split_axis, scene::IMeshBuffer *submesh)
+			{
+				// Generate a float halfway along the current axis 
+				float SplitPoint = (getValueByAxis_FromVector(split_axis, Box.MinEdge) + getValueByAxis_FromVector(split_axis, Box.MaxEdge)) * 0.5f;
+				Group_of_Points newbox;
+
+				// Separate Vertices into two groups by what side of the SplitPoint they fall on using the current box and the newbox.  
+				for (core::list<u32>::Iterator i = mIndices.begin (); i != mIndices.end (); )
+				{
+					if (getValueByAxis_FromVector(split_axis, submesh->getPosition(*i)) > SplitPoint) // if the vertex belongs in the new box
+					{
+						newbox.mIndices.push_back(*i); // copy it to the new box
+						mIndices.erase(i); // and delete it from the original
+					}
+					else
+						++i; // if it belongs where it is move along to the next vertex
+				}
+
+				computeBBox (submesh);
+				newbox.computeBBox (submesh);
+
+				return newbox;
+			}
+		};
+
 	};
 
 } // end namespace scene
