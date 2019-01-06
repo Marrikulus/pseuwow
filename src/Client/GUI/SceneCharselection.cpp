@@ -161,13 +161,13 @@ void SceneCharSelection::OnUpdate(s32 timepassed)
         WorldSession *ws = instance->GetWSession();
         if(ws)
         {
-            u32 selected = charlistbox->getSelected();
-            if(selected < ws->GetCharsCount())
+            s32 selected = charlistbox->getSelected();
+            if(selected > -1 && selected < ws->GetCharsCount())
             {
-                ws->EnterWorldWithCharacter(ws->GetCharFromList(selected).p._name);
+                ws->EnterWorldWithCharacter(ws->GetCharFromList((u32)selected).p._name);
             }
             else
-                logerror("Character selection out of bounds! (%u)",selected);
+                logerror("Character selection out of bounds! (%d)",selected);
         }
         else
             logerror("GUI: BUTTON_ENTER_ WORLD pressed, but no WorldSession exists!");

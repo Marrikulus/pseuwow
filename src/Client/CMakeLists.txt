@@ -11,7 +11,7 @@ if(WIN32)
 endif()
 if(UNIX)
   set(EXECUTABLE_LINK_FLAGS "-pthread" ${EXECUTABLE_LINK_FLAGS})
-  set(PSEUWOW_LIBS ${PSEUWOW_LIBS} GL Xxf86vm bz2)
+  set(PSEUWOW_LIBS ${PSEUWOW_LIBS} X11 GL Xxf86vm bz2)
 endif()
 
 add_subdirectory (DefScript)

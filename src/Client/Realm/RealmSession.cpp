@@ -355,10 +355,31 @@ void RealmSession::SendLogonChallenge(void)
         logerror("Can't send logon challenge, socket doesn't exist");
         return;
     }
-    if( _accname.empty() || GetInstance()->GetConf()->clientversion_string.empty()
-        || GetInstance()->GetConf()->clientbuild==0 || GetInstance()->GetConf()->clientlang.empty() )
+
+    if( _accname.empty())
     {
-        logerror("Missing data, can't send Login challenge to Realm Server! (check your conf files)");
+        logerror("Missing account name, can't send Login challenge to Realm Server! (check your conf files)");
+        GetInstance()->SetError();
+        return;
+    }
+
+    if( GetInstance()->GetConf()->clientversion_string.empty())
+    {
+        logerror("Missing clientversion, can't send Login challenge to Realm Server! (check your conf files)");
+        GetInstance()->SetError();
+        return;
+    }
+
+    if( GetInstance()->GetConf()->clientbuild==0)
+    {
+        logerror("Clientbuild not set, can't send Login challenge to Realm Server! (check your conf files)");
+        GetInstance()->SetError();
+        return;
+    }
+
+    if(GetInstance()->GetConf()->clientlang.empty())
+    {
+        logerror("Missing client language, can't send Login challenge to Realm Server! (check your conf files)");
         GetInstance()->SetError();
         return;
     }
