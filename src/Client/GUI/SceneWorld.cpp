@@ -31,6 +31,7 @@ SceneWorld::SceneWorld(PseuGUI *g) : Scene(g)
     wsession = gui->GetInstance()->GetWSession();
     world = wsession->GetWorld();
     mapmgr = world->GetMapMgr();
+    ASSERT(mapmgr);
     movemgr = world->GetMoveMgr();
     mychar = wsession->GetMyChar();
     ASSERT(mychar);
@@ -541,6 +542,7 @@ void SceneWorld::InitTerrain(void)
 
 void SceneWorld::UpdateTerrain(void)
 {
+    ASSERT(mapmgr);
     // check if we changed the maptile
     if(map_gridX == mapmgr->GetGridX() && map_gridY == mapmgr->GetGridY())
         return; // grid not changed, not necessary to update tile data
