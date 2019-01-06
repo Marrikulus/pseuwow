@@ -1,3 +1,9 @@
+## Preinstall
+
+On ubuntu these are the packages that need to be installed to compile
+
+	sudo apt-get install libx11-dev x11proto-core-dev x11proto-gl-dev x11proto-kb-dev libpng12-dev zlib1g-dev x11proto-xf86vidmode-dev libxxf86vm-dev libxau-dev libxext-dev libxi-dev x11proto-input-dev x11proto-xext-dev libjpeg62-dev libssl1.0-dev
+
 ## Installation Instructions
 
 PseuWoW installation uses CMake. Please create a new directory for the build and create Build Files appropriate for your system using cmake or cmake-gui. If you prefer to use the command line, this is an example of the process, starting in the PseuWoW root directory:
