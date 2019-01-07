@@ -4,7 +4,6 @@
 #include "MemoryInterface.h"
 #include "CM2MeshFileLoader.h"
 #include "common.h"
-#include "windows.h"
 
 namespace irr
 {
