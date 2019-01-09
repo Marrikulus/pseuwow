@@ -639,14 +639,15 @@ void SceneWorld::UpdateTerrain(void)
                         scene::IAnimatedMesh *mesh;
                         if(!smgr->getMeshCache()->isMeshLoaded(filename.c_str()))
                         {
-                          io::IReadFile* modelfile = io::IrrCreateIReadFileBasic(device, filename.c_str());
-                          if (!modelfile)
-                              {
-                                  logerror("Error! modelfile not found: %s", filename.c_str());
-                                  continue;
-                              }
-                          mesh = smgr->getMesh(modelfile);
-                          modelfile->drop();
+                            io::IReadFile* modelfile = io::IrrCreateIReadFileBasic(device, filename.c_str());
+                            if (!modelfile)
+                            {
+                                logerror("Error! modelfile not found: %s", filename.c_str());
+                                continue;
+                            }
+                            logerror("Detail! modelfile: %s", filename.c_str());
+                            mesh = smgr->getMesh(modelfile);
+                            modelfile->drop();
                         }
                         else
                         {

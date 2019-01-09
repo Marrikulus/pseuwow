@@ -519,6 +519,7 @@ void CM2MeshFileLoader::ReadTextureDefinitions()
         M2MTextureLookup.clear();
     }
     MeshFile->seek(header.TexLookup.ofs);
+    DEBUG(logdebug("Number of textureLookups: (%u)",header.TexLookup.num));
     for(u32 i=0;i<header.TexLookup.num;i++)
     {
         MeshFile->read(&tempM2TexLookup,sizeof(u16));
@@ -534,6 +535,7 @@ void CM2MeshFileLoader::ReadTextureDefinitions()
         M2MTextureDef.clear();
     }
     MeshFile->seek(header.Textures.ofs);
+    DEBUG(logdebug("Number of textures: (%u)",header.Textures.num));
     for(u32 i=0;i<header.Textures.num;i++)
     {
         MeshFile->read(&tempM2TexDef,sizeof(TextureDefinition));
@@ -549,6 +551,8 @@ void CM2MeshFileLoader::ReadTextureDefinitions()
         M2MRenderFlags.clear();
     }
     MeshFile->seek(header.TexFlags.ofs);
+
+    DEBUG(logdebug("Number of flags: (%u)",header.TexFlags.num));
     for(u32 i=0;i<header.TexFlags.num;i++)
     {
         MeshFile->read(&tempM2RF,sizeof(RenderFlags));
@@ -578,12 +582,12 @@ void CM2MeshFileLoader::CopyAnimationsToMesh(CM2Mesh * CurrentMesh)
 {
 	for(u32 i=0;i<M2MAnimations.size();i++)
 	{
-	  CurrentMesh->newAnimation(M2MAnimations[i].animationID,M2MAnimations[i].start,M2MAnimations[i].end,M2MAnimations[i].probability);
+	  CurrentMesh->newAnimation(M2MAnimations[i].animationID, M2MAnimations[i].start, M2MAnimations[i].end, M2MAnimations[i].probability);
 	}
 
 
 	scene::CM2Mesh::SJoint* Joint;
-	for(u32 i=0;i<M2MBones.size();i++)  
+	for(u32 i=0;i<M2MBones.size();i++)
 	{
 	  if(M2MBones[i].parentBone == -1)
 	  {
@@ -761,25 +765,36 @@ void CM2MeshFileLoader::BuildANewSubMesh(CM2Mesh * CurrentMesh, u32 v, u32 i, u3
     //Put the Indices and Vertices of the Submesh into a mesh buffer
     //Each Submesh contains only the Indices and Vertices that belong to it.
     //Because of this the Index values for the Submeshes must be corrected by the Vertex offset of the Submesh
-    for(u32 j=M2MSkins[v].M2MSubmeshes[i].ofsTris;j<M2MSkins[v].M2MSubmeshes[i].ofsTris+M2MSkins[v].M2MSubmeshes[i].nTris;j++)
+    for(u32 j = M2MSkins[v].M2MSubmeshes[i].ofsTris;
+        j < M2MSkins[v].M2MSubmeshes[i].ofsTris + M2MSkins[v].M2MSubmeshes[i].nTris;
+        j++)
     {
-        MeshBuffer->Indices.push_back(M2MSkins[v].M2MIndices[M2MSkins[v].M2MTriangles[j]]-M2MSkins[v].M2MSubmeshes[i].ofsVertex);
-        if(M2MSkins[v].M2MIndices[M2MSkins[v].M2MTriangles[j]]<M2MSkins[v].M2MSubmeshes[i].ofsVertex)
-          logerror("Index %u < ofsVertex %u",M2MSkins[v].M2MIndices[M2MSkins[v].M2MTriangles[j]],M2MSkins[v].M2MSubmeshes[i].ofsVertex);
+        MeshBuffer->Indices.push_back(M2MSkins[v].M2MIndices[M2MSkins[v].M2MTriangles[j]] - M2MSkins[v].M2MSubmeshes[i].ofsVertex);
+        if(M2MSkins[v].M2MIndices[M2MSkins[v].M2MTriangles[j]] < M2MSkins[v].M2MSubmeshes[i].ofsVertex)
+            logerror("Index %u < ofsVertex %u",M2MSkins[v].M2MIndices[M2MSkins[v].M2MTriangles[j]],M2MSkins[v].M2MSubmeshes[i].ofsVertex);
     }
 
-    for(u32 j=M2MSkins[v].M2MSubmeshes[i].ofsVertex;j<M2MSkins[v].M2MSubmeshes[i].ofsVertex+M2MSkins[v].M2MSubmeshes[i].nVertex;j++)
+    for(u32 j = M2MSkins[v].M2MSubmeshes[i].ofsVertex;
+        j < M2MSkins[v].M2MSubmeshes[i].ofsVertex + M2MSkins[v].M2MSubmeshes[i].nVertex;
+        j++)
     {
-        MeshBuffer->Vertices_Standard.push_back(M2Vertices[j]);
+        if(M2Vertices.size() <= j)
+        {
+            logerror("Out of bounds vertex %u, M2Vertices size %u", j, M2Vertices.size());
+            continue;
+        }
+
+        auto ble = M2Vertices[j];
+        MeshBuffer->Vertices_Standard.push_back(ble);
         for(u32 k=0; k<4; k++)
         {
             if((M2MVertices[j].weights[k])>0)
             {
-            u32 boneIndex = M2MVertices[j].bones[k];
-            scene::CM2Mesh::SWeight* weight = CurrentMesh->addWeight(CurrentMesh->getAllJoints()[boneIndex]);
-            weight->strength=M2MVertices[j].weights[k];
-            weight->vertex_id=MeshBuffer->Vertices_Standard.size()-1;
-            weight->buffer_id=sn; 
+                u32 boneIndex = M2MVertices[j].bones[k];
+                scene::CM2Mesh::SWeight* weight = CurrentMesh->addWeight(CurrentMesh->getAllJoints()[boneIndex]);
+                weight->strength=M2MVertices[j].weights[k];
+                weight->vertex_id=MeshBuffer->Vertices_Standard.size()-1;
+                weight->buffer_id=sn;
             }
 
         }
@@ -940,45 +955,45 @@ bool CM2MeshFileLoader::load()
       //std::string SkinName = MeshFile->getFileName().c_str();
       //SkinName = SkinName.substr(0, SkinName.length()-3) + "00.skin"; // FIX ME if we need more skins
 	
-	  // Load and read skins
-	  for (u16 n = 0; n < header.Views.num; n++)
-	  {
-			std::string SkinName = MeshFile->getFileName().c_str();
-			//SkinName = SkinName.substr(0, SkinName.length()-3) + "00.skin"; // FIX ME if we need more skins
-			SkinName = SkinName.substr(0, SkinName.length()-3);
-    
-			// make up a skin name
-			std::ostringstream ext;
-			ext<<SkinName;
-			if (n<10)
-			{
-				ext<< "0";
-				ext<< n;
-				ext<< ".skin";
-			}
-			if (n>9)
-			{
-				ext<< n;
-				ext<< ".skin";
-			}
-			SkinName = ext.str();
-    
-			// Load our made up filename.  
-			io::IReadFile* SkinFile = io::IrrCreateIReadFileBasic(Device, SkinName.c_str()); // if it is there load it
-			if (!SkinFile) // if it didnt load we have an error
-			{
-				logerror("Error! Skin file not found: %s", SkinName.c_str());
-				return 0;
-			}
-			else           // No error so read the skin
-			{
-				SkinFile->seek(4); // Header of Skin Files is always SKIN
-				SkinFile->read(&currentView,sizeof(ModelView)); // overwrites previous currentview if any
-				ReadViewData(SkinFile);
-				SkinFile->drop();
-				logdetail("Read veiw data from %s .", SkinName.c_str());
-			}
-	  }
+      // Load and read skins
+      for (u16 n = 0; n < header.Views.num; n++)
+      {
+      	std::string SkinName = MeshFile->getFileName().c_str();
+      	//SkinName = SkinName.substr(0, SkinName.length()-3) + "00.skin"; // FIX ME if we need more skins
+      	SkinName = SkinName.substr(0, SkinName.length()-3);
+
+      	// make up a skin name
+      	std::ostringstream ext;
+      	ext<<SkinName;
+      	if (n<10)
+      	{
+      		ext<< "0";
+      		ext<< n;
+      		ext<< ".skin";
+      	}
+      	if (n>9)
+      	{
+      		ext<< n;
+      		ext<< ".skin";
+      	}
+      	SkinName = ext.str();
+
+      	// Load our made up filename.  
+      	io::IReadFile* SkinFile = io::IrrCreateIReadFileBasic(Device, SkinName.c_str()); // if it is there load it
+      	if (!SkinFile) // if it didnt load we have an error
+      	{
+      		logerror("Error! Skin file not found: %s", SkinName.c_str());
+      		return 0;
+      	}
+      	else           // No error so read the skin
+      	{
+      		SkinFile->seek(4); // Header of Skin Files is always SKIN
+      		SkinFile->read(&currentView,sizeof(ModelView)); // overwrites previous currentview if any
+      		ReadViewData(SkinFile);
+      		SkinFile->drop();
+      		logdetail("Read view data from %s .", SkinName.c_str());
+      	}
+      }
 
       break;
     }
@@ -1005,6 +1020,7 @@ bool CM2MeshFileLoader::load()
 //////////////////////////////////////////////////
 
 
+logdetail("M2MSkins");
 // ToDo:: Store all M2MTextureFiles in the CM2Mesh.  Copy all M2MSkins to AnimatedMesh.Skins. Store all Animated data in the CM2Mesh too
 for(u16 S = 0; S < M2MSkins.size(); S++)
 {
@@ -1021,7 +1037,13 @@ for(u16 S = 0; S < M2MSkins.size(); S++)
 		//AnimatedMesh->Skins[S].Submeshes.push_back(Submesh); // store a blank submesh
 		Submesh.MeshPart = M2MSkins[S].M2MSubmeshes[s].meshpartId; // AnimatedMesh->Skins[S].Submeshes.getLast().
 		// Store parent bone for submesh so we can link submesh to bone
-		Submesh.RootBone = M2MBoneLookupTable[M2MSkins[S].M2MSubmeshes[s].unk4]; // M2MSkins[S].M2MSubmeshes[s].unk4;
+    auto index = M2MSkins[S].M2MSubmeshes[s].unk4;
+    if(M2MBoneLookupTable.size() <= index)
+    {
+        logerror("Out of bounds Index %u, M2MBoneLookupTable size %u", index, M2MBoneLookupTable.size());
+        continue;
+    }
+		Submesh.RootBone = M2MBoneLookupTable[index]; // M2MSkins[S].M2MSubmeshes[s].unk4;
 		Submesh.Radius = M2MSkins[S].M2MSubmeshes[s].Radius;
 		Submesh.SubmeshIndex = s; // save an index to this submesh's current location so if this element is reordered we can still access its data in this loader
 		// vertex range should be the same for all instances of a submesh regardless of current skin so 
@@ -1034,7 +1056,8 @@ for(u16 S = 0; S < M2MSkins.size(); S++)
 		vertrange<< endvertrange;
 		Submesh.UniqueName = vertrange.str().c_str(); // save the submesh name, later when switching skins we check by this name if this submesh should be visible we reuse it updating its data for the current skin
 		
-		/*// get distance from camera
+/*
+    // get distance from camera
 		float closestDistance = 100000000.0f; //Arbitrary large number
 		core::vector3df pos(11.11f,2.44f,-0.03f); //The position of the camera. To compare with.
 		u16 nearestvertex;
@@ -1084,22 +1107,38 @@ for(u16 S = 0; S < M2MSkins.size(); S++)
 		SubmeshBounds.push_back(tempBounds);  // ToDo:: compensate for the camera not looking down the z axis.  generate a rotation that will make z axis aline with camera axis without damaging geomatry 
 		                                      // and apply it to each value in tempBounds to make decal positioning easyer to think about
 */
-				
+		logdetail("Textures for Submesh");
 		// get all texture data for this submesh
 		for (u16 t = 0; t < M2MSkins[S].M2MTextureUnit.size(); t++)
 		{
 			if (M2MSkins[S].M2MTextureUnit[t].submeshIndex1 == s) // Big S = current skin index little s= current submesh index
 			{
 				scene::CM2Mesh::texture Texture;
-				Texture.TextureNumber = M2MSkins[S].M2MTextureUnit[t].TextureUnitNumber;
-				Texture.Path = M2MTextureLookup[M2MSkins[S].M2MTextureUnit[t].textureIndex]; 
+                auto skin = M2MSkins[S];
+                auto textureUnit = skin.M2MTextureUnit[t];
+				Texture.TextureNumber = textureUnit.TextureUnitNumber;
+
+        auto textureIndex = M2MSkins[S].M2MTextureUnit[t].textureIndex;
+        if(M2MTextureLookup.size() <= textureIndex)
+        {
+            logerror("Out of bounds textureIndex %u, M2MTextureLookup size %u", textureIndex, M2MTextureLookup.size());
+            continue;
+        }
+				Texture.Path = M2MTextureLookup[textureIndex];
 				u8 animatedFlag = M2MSkins[S].M2MTextureUnit[t].Flags & 0xFF;   // get first 8bits this flag sets texture animation
 				if (animatedFlag == 0){
 					Texture.animated = true;}
 				else{
 					Texture.animated = false;}
 				Texture.shaderType = M2MSkins[S].M2MTextureUnit[t].renderOrder;
-				Texture.RenderFlag = M2MRenderFlags[M2MSkins[S].M2MTextureUnit[t].renderFlagsIndex].flags;
+        auto renderIndex = M2MSkins[S].M2MTextureUnit[t].renderFlagsIndex;
+        logerror("Reading renderIndex %u, M2MRenderFlags size %u", renderIndex, M2MRenderFlags.size());
+        if(M2MRenderFlags.size() <= renderIndex)
+        {
+            logerror("Out of bounds renderIndex %u, M2MRenderFlags size %u", renderIndex, M2MRenderFlags.size());
+            continue;
+        }
+				Texture.RenderFlag = M2MRenderFlags[renderIndex].flags;
 				Texture.BlendFlag = M2MRenderFlags[M2MSkins[S].M2MTextureUnit[t].renderFlagsIndex].blending;
 				Texture.Mode = M2MSkins[S].M2MTextureUnit[t].Mode;
 				u8 renderFlag = M2MSkins[S].M2MTextureUnit[t].Flags >> 8;

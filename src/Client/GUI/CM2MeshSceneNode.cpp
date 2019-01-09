@@ -34,7 +34,7 @@ using namespace scene;
 //////////////////////////////////////////////////////////////////////////////////
 
 // id for our scene node, 'm2node'.
-const int CM2MESHSCENENODE_ID = MAKE_IRR_ID('m','2','n','o','d','e');
+const int CM2MESHSCENENODE_ID = MAKE_IRR_ID('m','2','n','d');
 
 // type name for our scene node
 const char* CM2MeshSceneNodeTypeName = "CM2MeshSceneNode";
