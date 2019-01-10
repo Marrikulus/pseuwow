@@ -14,7 +14,7 @@ ${PROJECT_SOURCE_DIR}/src/Client/GUI/CM2MeshSceneNode.cpp
 # Link the executable to the libraries.
 set(VIEWER_LIBS shared irrlicht StormLib_static zthread zlib)
 if(UNIX)
-  list(APPEND VIEWER_LIBS GL Xxf86vm bz2)
+  list(APPEND VIEWER_LIBS X11 GL Xxf86vm bz2)
   set(EXECUTABLE_LINK_FLAGS "-pthread" ${EXECUTABLE_LINK_FLAGS})
 endif()
 if(WIN32)
