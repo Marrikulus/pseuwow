@@ -102,6 +102,8 @@ void SceneCharSelection::FillCharlist(void)
             charlistbox->setItemOverrideColor(i,EGUI_LBC_TEXT_HIGHLIGHT,col);
 
         }
+        if(charlistbox->getItemCount())
+                charlistbox->setSelected(0);
     }
 }
 

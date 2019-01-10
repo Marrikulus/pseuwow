@@ -2,7 +2,15 @@
 
 On ubuntu these are the packages that need to be installed to compile
 
-	sudo apt-get install libx11-dev x11proto-core-dev x11proto-gl-dev x11proto-kb-dev libpng12-dev zlib1g-dev x11proto-xf86vidmode-dev libxxf86vm-dev libxau-dev libxext-dev libxi-dev x11proto-input-dev x11proto-xext-dev libjpeg62-dev libssl1.0-dev
+	sudo apt-get install cmake libx11-dev x11proto-core-dev x11proto-gl-dev x11proto-kb-dev libpng12-dev zlib1g-dev x11proto-xf86vidmode-dev libxxf86vm-dev libxau-dev libxext-dev libxi-dev x11proto-input-dev x11proto-xext-dev libjpeg62-dev mesa-common-dev
+
+ubuntu 16.04:
+
+	sudo apt-get install libssl-dev
+
+ubuntu 18.04:
+
+	sudo apt-get install libssl1.0-dev
 
 ## Installation Instructions
 
