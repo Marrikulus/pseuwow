@@ -1,9 +1,13 @@
+#include <iostream>
+#include "MemoryDataHolder.h"
+#include "MemoryInterface.h"
 #include "irrlicht/irrlicht.h"
 #include "irrlicht/IMeshLoader.h"
 #include "CM2Mesh.h"
 #include <string>
 #include <vector>
 #include <algorithm>
+#include "common.h"
 
 namespace irr
 {

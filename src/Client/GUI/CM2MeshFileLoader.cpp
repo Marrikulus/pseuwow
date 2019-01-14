@@ -1,9 +1,5 @@
 //#define _DEBUG 1
-#include <iostream>
-#include "MemoryDataHolder.h"
-#include "MemoryInterface.h"
 #include "CM2MeshFileLoader.h"
-#include "common.h"
 
 namespace irr
 {
