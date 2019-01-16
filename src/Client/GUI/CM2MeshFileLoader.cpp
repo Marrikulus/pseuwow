@@ -77,8 +77,9 @@ void CM2MeshFileLoader::ReadVertices()
 
 void CM2MeshFileLoader::ReadViewData(io::IReadFile* file)
 {
-    SkinData TempSkin;
-	   
+	if(!M2MSkins.empty())
+		M2MSkins.clear();
+	SkinData TempSkin;
 
 	//Vertex indices of a specific view.  Local to currentView
 	u16 tempM2Index;
@@ -1477,6 +1478,7 @@ for(u32 i=0; i< M2MAnimfiles.size();i++)
 M2MAnimations.clear();
 M2MAnimfiles.clear();
 M2MTriangles.clear();
+M2MSkins.clear();
 M2Vertices.clear();
 M2Indices.clear();
 M2MIndices.clear();
